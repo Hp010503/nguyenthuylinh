@@ -101,37 +101,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function fetchIconsConfig() {
-        return fetch('icons.ini')
-            .then(response => {
-                if (!response.ok) throw new Error('Không thể tải file icons.ini');
-                return response.text();
-            })
-            .then(data => {
-                const lines = data.split('\n');
-                iconsConfig = lines
-                    .map(line => line.trim())
-                    .filter(line => line.length > 0 && !line.startsWith(';'))
-                    .map(line => {
-                        const parts = line.split('|').map(part => part.trim());
-                        if (parts.length === 4) {
-                            return {
-                                iconClass: parts[0],
-                                text: parts[1],
-                                color: parts[2],
-                                size: parseInt(parts[3], 10) || 20
-                            };
-                        }
-                        return null;
-                    })
-                    .filter(config => config !== null);
-                if (iconsConfig.length === 0) {
-                    console.warn("File icons.ini trống hoặc không đúng định dạng.");
-                }
-            })
-            .catch(error => {
-                console.error('Lỗi khi tải icons.ini:', error);
-            });
-    }
+    return fetch('icons.ini') // <<<< ĐÂY LÀ ĐIỂM "LIÊN KẾT" CHÍNH
+        .then(response => {
+            if (!response.ok) throw new Error('Không thể tải file icons.ini. Hãy kiểm tra đường dẫn và file có tồn tại không.');
+            return response.text();
+        })
+        .then(data => {
+            const lines = data.split('\n');
+            iconsConfig = lines
+                .map(line => line.trim())
+                .filter(line => line.length > 0 && !line.startsWith(';')) // Bỏ dòng trống và comment
+                .map(line => {
+                    const parts = line.split('|').map(part => part.trim());
+                    if (parts.length === 4) {
+                        return {
+                            iconClass: parts[0], // Ví dụ: "fas fa-star"
+                            text: parts[1],      // Ví dụ: "Yêu thích"
+                            color: parts[2],     // Ví dụ: "#FFD700"
+                            size: parseInt(parts[3], 10) || 20 // Ví dụ: 24 (mặc định là 20 nếu không hợp lệ)
+                        };
+                    }
+                    console.warn(`Dòng không hợp lệ trong icons.ini: "${line}"`);
+                    return null;
+                })
+                .filter(config => config !== null); // Loại bỏ các dòng parse lỗi
+
+            if (iconsConfig.length === 0) {
+                console.warn("File icons.ini trống hoặc tất cả các dòng không đúng định dạng. Icon sẽ không được tạo.");
+            }
+        })
+        .catch(error => {
+            console.error('Lỗi nghiêm trọng khi tải hoặc xử lý icons.ini:', error);
+            // Để iconsConfig là mảng rỗng, sẽ không có icon nào được tạo
+            iconsConfig = []; 
+        });
+}
 
     Promise.all([
         fetch('textindex.ini')
