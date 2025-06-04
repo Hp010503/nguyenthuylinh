@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             backgroundMusic.dataset.playedByInteraction = 'true'; 
                             document.removeEventListener('click', playMusicOnFirstInteraction, {capture: true});
                             document.removeEventListener('touchstart', playMusicOnFirstInteraction, {capture: true});
-                            document.removeEventListener('keydown', playMusicOnFirstInteraction, {capture: true}); // Cũng xóa nếu bạn dùng
+                            document.removeEventListener('keydown', playMusicOnFirstInteraction, {capture: true}); 
                         }).catch(error => {
                             console.warn("[Interaction] Lỗi khi cố gắng phát nhạc sau tương tác:", error);
                         });
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.addEventListener('click', playMusicOnFirstInteraction, { once: true, capture: true });
             document.addEventListener('touchstart', playMusicOnFirstInteraction, { once: true, capture: true });
-            // document.addEventListener('keydown', playMusicOnFirstInteraction, { once: true, capture: true }); // Bỏ comment nếu muốn phím cũng kích hoạt
+            document.addEventListener('keydown', playMusicOnFirstInteraction, { once: true, capture: true });
 
 
             document.addEventListener("visibilitychange", () => {
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateTextAreaTransform() { const tZV = FIXED_SCENE_Z_DEPTH; currentSceneScale = Math.max(MIN_SCENE_SCALE, Math.min(MAX_SCENE_SCALE, currentSceneScale)); currentRotationX = Math.max(-maxAngle, Math.min(maxAngle, currentRotationX)); currentRotationY = Math.max(-maxAngle, Math.min(35, currentRotationY)); textArea.style.transform = `translateZ(${tZV}px) scale(${currentSceneScale}) rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`; }
     sceneContainer.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isMouseDown = true; isPinching = false; isTouching = false; lastMouseX = e.clientX; lastMouseY = e.clientY; sceneContainer.style.cursor = 'grabbing'; });
-    document.addEventListener('mousemove', (e) => { if (!isMouseDown) return; const dX = e.clientX - lastMouseX; const dY = e.clientY - lastMouseY; currentRotationY += dX * rotationSensitivityMouse; currentRotationX -= deltaY * rotationSensitivityMouse; updateTextAreaTransform(); lastMouseX = e.clientX; lastMouseY = e.clientY; });
+    document.addEventListener('mousemove', (e) => { if (!isMouseDown) return; const dX = e.clientX - lastMouseX; const dY = e.clientY - lastMouseY; currentRotationY += dX * rotationSensitivityMouse; currentRotationX -= dY * rotationSensitivityMouse; updateTextAreaTransform(); lastMouseX = e.clientX; lastMouseY = e.clientY; });
     document.addEventListener('mouseup', () => { if (isMouseDown) { isMouseDown = false; sceneContainer.style.cursor = 'grab'; } });
     document.addEventListener('mouseleave', () => { if (isMouseDown) { isMouseDown = false; sceneContainer.style.cursor = 'default'; } });
     sceneContainer.addEventListener('mouseenter', () => { if (!isMouseDown && !isTouching && !isPinching) { sceneContainer.style.cursor = 'grab'; } });
