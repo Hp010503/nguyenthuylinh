@@ -1,0 +1,223 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #000; /* Màu nền đen là tốt nhất cho trời sao */
+    touch-action: none; 
+}
+
+/* --- STARFIELD --- */
+/* Hàm tiện ích SASS (nếu dùng SASS) hoặc bạn có thể tạo nhiều box-shadow thủ công */
+/* @function multiple-box-shadow ($n) {
+  $value: '#{random(2000)}px #{random(2000)}px #FFF';
+  @for $i from 2 through $n {
+    $value: '#{$value} , #{random(2000)}px #{random(2000)}px #FFF';
+  }
+  @return unquote($value);
+} */
+
+/* Thay thế các @function trên bằng cách tạo nhiều box-shadow thủ công cho 3 lớp sao */
+/* Stars Layer 1 (nhỏ nhất, nhiều nhất) */
+.stars1 {
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  /* box-shadow: multiple-box-shadow(700); */ /* Nếu dùng SASS */
+  /* Dưới đây là ví dụ thủ công - bạn nên tạo nhiều hơn nữa cho hiệu ứng đẹp */
+  box-shadow: 
+    500px 800px #FFF, 1200px 300px #FFF, 800px 1500px #FFF, 
+    1800px 100px #FFF, 200px 1200px #FFF, 1500px 900px #FFF,
+    /* ... Thêm rất nhiều tọa độ ngẫu nhiên và màu trắng (#FFF) ở đây ... */
+    /* (Khoảng vài trăm box-shadow cho lớp này) */
+    300px 500px rgba(255,255,255,0.8), 1700px 1400px rgba(255,255,255,0.7);
+  animation: animStar 50s linear infinite;
+}
+/* Stars Layer 2 (vừa) */
+.stars2 {
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  /* box-shadow: multiple-box-shadow(200); */ /* Nếu dùng SASS */
+  box-shadow:
+    200px 1000px #FFF, 1600px 600px #FFF, 900px 200px #FFF,
+    /* ... Thêm tọa độ ngẫu nhiên và màu trắng (#FFF) ở đây ... */
+    /* (Khoảng vài chục box-shadow cho lớp này) */
+    100px 100px rgba(255,255,255,0.9), 1900px 1800px rgba(255,255,255,0.85);
+  animation: animStar 100s linear infinite;
+}
+/* Stars Layer 3 (lớn nhất, ít nhất, có thể nhấp nháy màu nhẹ) */
+.stars3 {
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  /* box-shadow: multiple-box-shadow(50); */ /* Nếu dùng SASS */
+  box-shadow:
+    700px 400px #FFF, 1300px 1100px #FFF, 
+    /* ... Thêm tọa độ ngẫu nhiên và màu trắng (#FFF) ở đây ... */
+    /* (Khoảng hơn chục box-shadow cho lớp này) */
+    400px 1600px rgba(220,220,255,0.95), 1000px 800px rgba(255,240,240,0.9);
+  animation: animStar 150s linear infinite, twinkle 3s alternate infinite;
+}
+
+/* Thêm các pseudo-elements này vào scene-container để làm nền trời sao */
+#scene-container::before, #scene-container::after, #stars-layer3-overlay::before {
+    content: "";
+    position: absolute;
+    top: 0; /* Hoặc 50% để di chuyển từ giữa */
+    left: 0; /* Hoặc 50% */
+    right: 0; /* Để animation có không gian di chuyển */
+    bottom: 0; /* Để animation có không gian di chuyển */
+}
+
+#scene-container::before {
+    /* stars1 */
+    width: 1px;
+    height: 1px;
+    background: transparent;
+    /* Đây là cách tạo nhiều "ngôi sao" bằng box-shadow.
+       Cú pháp: offset-x offset-y color. 
+       Tạo khoảng 200-700 box-shadows cho hiệu ứng tốt. 
+       Rất khó để liệt kê thủ công. */
+    box-shadow: /* Khoảng 50-100 box-shadows, các giá trị là ngẫu nhiên */
+      678px 1736px #FFF, 1062px 1200px #FFF, 53px 1088px #FFF, 884px 1557px #FFF, 
+      1954px 225px #FFF, 178px 1096px #FFF, 1242px 385px #FFF, 774px 1188px #FFF, 
+      /* ...THÊM NHIỀU BOX-SHADOW NỮA Ở ĐÂY (ít nhất 50-100 cho hiệu ứng đẹp)... */
+      1801px 463px rgba(255,255,255,0.8), 1514px 794px rgba(255,255,255,0.7); 
+    animation: animStar 50s linear infinite, twinkleStarSmall 5s ease-in-out infinite alternate;
+}
+
+#scene-container::after {
+    /* stars2 */
+    width: 2px;
+    height: 2px;
+    background: transparent;
+    box-shadow: /* Khoảng 20-50 box-shadows */
+      1890px 345px #FFF, 726px 550px #FFF, 1493px 1884px #FFF, 175px 561px #FFF,
+      /* ...THÊM NHIỀU BOX-SHADOW NỮA Ở ĐÂY ... */
+      1463px 736px rgba(255,255,255,0.9), 439px 1801px rgba(255,255,255,0.85);
+    animation: animStar 150s linear infinite, twinkleStarMedium 7s ease-in-out infinite alternate;
+}
+
+/* Lớp sao thứ ba có thể là một div riêng nếu muốn kiểm soát z-index dễ hơn */
+#starfield-overlay { /* Một div mới trong HTML nếu dùng cách này */
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right:0; bottom:0;
+  width: 3px; /* Kích thước lớn hơn cho sao lớn */
+  height: 3px;
+  background: transparent;
+  box-shadow: /* Khoảng 10-20 box-shadows */
+      837px 909px #FFF, 385px 124px #FFF, 1908px 891px rgba(220,220,255,0.95),
+      /* ...THÊM NHIỀU BOX-SHADOW NỮA Ở ĐÂY ... */
+      1285px 1748px rgba(255,240,240,0.9);
+  animation: animStar 100s linear infinite, twinkleStarLarge 3s ease-in-out infinite alternate;
+  z-index: -1; /* Đảm bảo nằm dưới cùng (nếu là div riêng) */
+}
+
+
+@keyframes animStar {
+  from {transform: translateY(0px);}
+  to   {transform: translateY(-2000px);} /* Di chuyển sao lên trên, tạo cảm giác "bay" qua */
+}
+
+@keyframes twinkleStarSmall { /* Nhấp nháy nhẹ nhàng cho sao nhỏ */
+  0%   { opacity: 0.5; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+@keyframes twinkleStarMedium { /* Nhấp nháy rõ hơn cho sao vừa */
+  0%   { opacity: 0.3; transform: scale(0.8); }
+  50%  { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0.3; transform: scale(0.8); }
+}
+@keyframes twinkleStarLarge { /* Nhấp nháy và đổi màu nhẹ cho sao lớn */
+  0%   { opacity: 0.7; filter: brightness(0.8) hue-rotate(0deg); }
+  50%  { opacity: 1;   filter: brightness(1.2) hue-rotate(20deg); }
+  100% { opacity: 0.7; filter: brightness(0.8) hue-rotate(0deg); }
+}
+
+
+/* ----- Các style cũ ----- */
+#scene-container {
+    width: 100vw;
+    height: 100vh;
+    perspective: 800px; /* Tăng perspective để chiều sâu rõ hơn */
+    overflow: hidden;
+    /* background-image: url('../assets/background.gif'); */ /* Nền gif bị che bởi trời sao */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transform-style: preserve-3d;
+    position: relative; /* Để các pseudo-elements định vị theo */
+}
+/* ... (phần còn lại của #scene-container, #text-area, .falling-text, .falling-image, .falling-icon-container không đổi) ... */
+#text-area {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d; 
+    transform-origin: 50% 50% 0; 
+}
+
+.falling-text {
+    position: absolute;
+    font-family: 'Dancing Script', cursive;
+    color: #BCE1ED;
+    text-shadow:
+        0 0 5px #BCE1ED,
+        0 0 10px #BCE1ED,
+        0 0 15px #BCE1ED,
+        0 0 20px #00A3EF,
+        0 0 30px #00A3EF,
+        0 0 40px #00A3EF;
+    white-space: nowrap;
+    opacity: 0; 
+    transition: opacity 0.5s ease-in-out;
+    will-change: transform, opacity;
+    user-select: none;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.falling-image {
+    position: absolute;
+    border-radius: 15px; 
+    border: 2px solid #BCE1ED;
+    opacity: 0; 
+    box-shadow: 
+        0 0 3px 1px #BCE1ED, 
+        0 0 5px 1px rgba(0, 163, 239, 0.5); 
+    transition: opacity 0.5s ease-in-out; 
+    will-change: transform, opacity; 
+    user-select: none; 
+    pointer-events: none; 
+    background-color: rgba(50, 50, 80, 0.3); 
+    object-fit: cover;
+    z-index: 2;
+}
+
+.falling-icon-container {
+    position: absolute;
+    display: flex; 
+    align-items: center; 
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    will-change: transform, opacity;
+    user-select: none;
+    pointer-events: none;
+    z-index: 3;  
+    text-shadow: 
+        0 0 2px #FFFFFF, 
+        0 0 5px rgba(0,0,0,0.3); 
+}
+
+.falling-icon-container i {
+    margin-right: 5px; 
+}
+
+.falling-icon-container span {
+    white-space: nowrap;
+    font-family: Arial, sans-serif; 
+}
