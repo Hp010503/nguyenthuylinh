@@ -183,8 +183,8 @@ body, html {
 
 .falling-image {
     position: absolute;
-    border-radius: 15px; 
-    border: 2px solid #BCE1ED;
+    border-radius: 50px; 
+    border: 10px solid #BCE1ED;
     opacity: 0; 
     box-shadow: 
         0 0 3px 1px #BCE1ED, 
