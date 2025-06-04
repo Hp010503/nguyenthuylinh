@@ -41,14 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let availableImageIndicesToSpawn = [];
     let currentSpawnIndex = 0;
     const TARGET_APPARENT_IMAGE_WIDTH_DESKTOP = 250;
-    const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 175;
+    const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 1;
     const MIN_ZOOM_IMAGE_BORDER_WIDTH = 2; 
     const MAX_ZOOM_IMAGE_BORDER_WIDTH = 10;
     const MIN_ZOOM_IMAGE_BORDER_RADIUS = 15;
     const MAX_ZOOM_IMAGE_BORDER_RADIUS = 50;
 
     let iconsConfig = [];
-    const MAX_ACTIVE_ICONS = 4; 
+    const MAX_ACTIVE_ICONS = 4; https://github.com/Hp010503/nguyenthuylinh/blob/main/js/script.js
     const ICON_CREATION_INTERVAL = 2800;  
     const INITIAL_ICON_SPAWN_DELAY = 2500;
     
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRotationY = 15; 
     const rotationSensitivityMouse = 0.03;
     const rotationSensitivityTouch = 0.15;
-    const maxAngle = 75;
+    const maxAngle = 50;
     
     const MIN_SCENE_SCALE = 0.3;
     let currentSceneScale = MIN_SCENE_SCALE; 
