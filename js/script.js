@@ -113,31 +113,48 @@ document.addEventListener('DOMContentLoaded', () => {
         calculateEdgeFadeZones();
         window.addEventListener('resize', calculateEdgeFadeZones);
         
-        // --- ĐIỀU KHIỂN NHẠC NỀN (LOGIC ĐƠN GIẢN BAN ĐẦU) ---
+        // --- ĐIỀU KHIỂN NHẠC NỀN (PHÁT KHI CLICK/TOUCH ĐẦU TIÊN) ---
         if (backgroundMusic) {
-            console.log("[Init] Thẻ audio tìm thấy, thử phát nhạc.");
-            let playPromise = backgroundMusic.play();
+            console.log("[Init] Thẻ audio 'background-music' được tìm thấy. Sẵn sàng phát khi có tương tác.");
+            
+            // Hàm để bắt đầu phát nhạc
+            const playMusicOnFirstInteraction = () => {
+                // Chỉ phát nếu nhạc đang dừng và chưa từng được play() thành công bởi sự kiện này
+                if (backgroundMusic.paused && backgroundMusic.dataset.playedByInteraction !== 'true') {
+                    console.log("[Interaction] Thử phát nhạc sau tương tác.");
+                    let playPromise = backgroundMusic.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log("[Interaction] Nhạc đã bắt đầu phát thành công.");
+                            backgroundMusic.dataset.playedByInteraction = 'true'; // Đánh dấu đã phát
+                            // Xóa các listener sau khi đã phát thành công để tránh gọi lại
+                            document.removeEventListener('click', playMusicOnFirstInteraction, {capture: true});
+                            document.removeEventListener('touchstart', playMusicOnFirstInteraction, {capture: true});
+                            // Bạn có thể thêm keydown listener ở đây nếu muốn
+                        }).catch(error => {
+                            console.warn("[Interaction] Lỗi khi cố gắng phát nhạc sau tương tác:", error);
+                        });
+                    } else {
+                         console.warn("[Interaction] backgroundMusic.play() không trả về promise.");
+                    }
+                }
+            };
 
-            if (playPromise !== undefined) {
-                playPromise.then(_ => {
-                    console.log("[Init] Nhạc nền đã bắt đầu phát (autoplay hoặc được phép).");
-                }).catch(error => {
-                    console.warn("[Init] Autoplay nhạc nền bị chặn hoặc có lỗi khi play():", error);
-                    // Có thể thêm listener để phát khi người dùng tương tác lần đầu, nhưng theo yêu cầu thì bỏ
-                });
-            } else {
-                console.warn("[Init] backgroundMusic.play() không trả về Promise. Trình duyệt có thể cũ.");
-            }
+            // Thêm event listener cho click và touch đầu tiên trên toàn bộ document
+            document.addEventListener('click', playMusicOnFirstInteraction, { once: true, capture: true });
+            document.addEventListener('touchstart', playMusicOnFirstInteraction, { once: true, capture: true });
+            // Nếu muốn cả phím bất kỳ cũng kích hoạt nhạc:
+            // document.addEventListener('keydown', playMusicOnFirstInteraction, { once: true, capture: true });
 
+
+            // Xử lý khi người dùng chuyển tab
             document.addEventListener("visibilitychange", () => {
                 if (document.visibilityState === 'visible') {
-                    if (backgroundMusic.paused) { 
-                       console.log("[Visibility] Tab hiển thị lại, thử phát lại nhạc.");
+                    if (backgroundMusic.dataset.playedByInteraction === 'true' && backgroundMusic.paused) { 
+                       console.log("[Visibility] Tab hiện lại, nhạc đã được cho phép, thử phát lại.");
                        let resumePromise = backgroundMusic.play();
                        if (resumePromise !== undefined) {
-                           resumePromise.catch(error => {
-                               // console.warn("[Visibility] Không thể phát lại nhạc khi tab hiện lại:", error); 
-                           });
+                           resumePromise.catch(error => {});
                        }
                     }
                 } else {
@@ -152,10 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // --- KẾT THÚC ĐIỀU KHIỂN NHẠC NỀN ---
 
-
         if(textsContent.length>0) setTimeout(()=>{if(document.querySelectorAll('.falling-text').length<MAX_ACTIVE_TEXTS)createTextElement();setInterval(createTextElement,TEXT_CREATION_INTERVAL);},INITIAL_TEXT_SPAWN_DELAY);
         if(imageFilenames.length>0) setTimeout(()=>{if(document.querySelectorAll('.falling-image').length<MAX_ACTIVE_IMAGES)createImageElement();setInterval(createImageElement,IMAGE_CREATION_INTERVAL);},INITIAL_IMAGE_SPAWN_DELAY);
-        if(iconsConfig.length>0) setTimeout(()=>{if(document.querySelectorAll('.falling-icon-container').length<MAX_ACTIVE_ICONS)createIconElement();setInterval(createIconElement,ICON_CREATION_INTERVAL);},INITIAL_ICON_SPAWN_DELAY);
+        if(iconsConfig.length > 0) setTimeout(() => { if (document.querySelectorAll('.falling-icon-container').length < MAX_ACTIVE_ICONS) createIconElement(); setInterval(createIconElement, ICON_CREATION_INTERVAL); }, INITIAL_ICON_SPAWN_DELAY);
         if(MAX_DYNAMIC_STARS > 0) setTimeout(()=>{for(let i=0; i<Math.min(MAX_DYNAMIC_STARS,20);i++){if(document.querySelectorAll('.dynamic-star').length<MAX_DYNAMIC_STARS)createDynamicStar();} setInterval(createDynamicStar,DYNAMIC_STAR_CREATION_INTERVAL);}, INITIAL_DYNAMIC_STAR_SPAWN_DELAY);
         requestAnimationFrame(animationLoop); sceneContainer.style.cursor='grab'; updateTextAreaTransform();
     }
