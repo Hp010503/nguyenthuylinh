@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rotationSensitivityTouch = 0.15;
     const maxAngle = 75;
     
-    const MIN_SCENE_SCALE = 0.1;
+    const MIN_SCENE_SCALE = 0.4;
     let currentSceneScale = MIN_SCENE_SCALE; 
     const MAX_SCENE_SCALE = 2.0;
     const ZOOM_SENSITIVITY_MOUSE_WHEEL = 0.03;
