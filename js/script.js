@@ -9,15 +9,17 @@ function shuffleArray(array) {
 document.addEventListener('DOMContentLoaded', () => {
     const sceneContainer = document.getElementById('scene-container');
     const textArea = document.getElementById('text-area');
+    const backgroundMusic = document.getElementById('background-music');
     let textsContent = [];
 
+    // --- CÁC THAM SỐ CẤU HÌNH ---
     const FADE_DURATION = 500;
     const ELEMENT_Z_DEPTH_RANGE = 600;      
     const Z_SPEED_EFFECT_STRENGTH = 0.3;   
     const Z_OPACITY_EFFECT_STRENGTH = 0.4; 
 
-    const MAX_ACTIVE_TEXTS = 20; 
-    const TEXT_CREATION_INTERVAL = 80; 
+    const MAX_ACTIVE_TEXTS = 40;     
+    const TEXT_CREATION_INTERVAL = 50; 
     const INITIAL_TEXT_SPAWN_DELAY = 500;
     
     const MAX_ACTIVE_IMAGES = 6; 
@@ -40,13 +42,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSpawnIndex = 0;
     const TARGET_APPARENT_IMAGE_WIDTH_DESKTOP = 250;
     const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 175;
-
-    // --- CẤU HÌNH VIỀN/BO GÓC ĐỘNG CHO ẢNH (MỚI) ---
-    const MIN_ZOOM_IMAGE_BORDER_WIDTH = 2;  // px (khi zoom xa nhất - currentSceneScale = MIN_SCENE_SCALE)
-    const MAX_ZOOM_IMAGE_BORDER_WIDTH = 10; // px (khi zoom gần nhất - currentSceneScale = MAX_SCENE_SCALE)
-    const MIN_ZOOM_IMAGE_BORDER_RADIUS = 15; // px 
-    const MAX_ZOOM_IMAGE_BORDER_RADIUS = 50; // px
-    // ---------------------------------------------------
+    const MIN_ZOOM_IMAGE_BORDER_WIDTH = 2; 
+    const MAX_ZOOM_IMAGE_BORDER_WIDTH = 10;
+    const MIN_ZOOM_IMAGE_BORDER_RADIUS = 15;
+    const MAX_ZOOM_IMAGE_BORDER_RADIUS = 50;
 
     let iconsConfig = [];
     const MAX_ACTIVE_ICONS = 4; 
@@ -77,156 +76,97 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_EFFECTIVE_FONT_SIZE = 100;
     
     const EDGE_FADE_ZONE_RATIO_X = 0;
-    const EDGE_FADE_ZONE_RATIO_Y = 0.20;
+    const EDGE_FADE_ZONE_RATIO_Y = 0; 
     let edgeFadeZoneX, edgeFadeZoneY_Bottom;
 
-    let isMouseDown = false;
-    let lastMouseX = 0, lastMouseY = 0;
-    let isTouching = false;
-    let lastTouchX = 0, lastTouchY = 0;
-    let isPinching = false;
-    let initialPinchDistance = 0;
+    // DYNAMIC STARS PARAMS
+    const MAX_DYNAMIC_STARS = 75; 
+    const DYNAMIC_STAR_CREATION_INTERVAL = 150; 
+    const INITIAL_DYNAMIC_STAR_SPAWN_DELAY = 300; 
+    const MIN_DYNAMIC_STAR_SIZE = 1; 
+    const MAX_DYNAMIC_STAR_SIZE = 3; 
+    const DYNAMIC_STAR_MAX_LIFETIME = 5000;
+    const DYNAMIC_STAR_FADE_OUT_DURATION = 1000; 
+    const DYNAMIC_STAR_TWINKLE_SPEED_FACTOR = 0.03;
 
-    // ... (getNextUniqueImageFilename, calculateEdgeFadeZones, fetchIconsConfig, Promise.all, initScene) ...
-    // GIỮ NGUYÊN CÁC HÀM NÀY TỪ BẢN TRƯỚC (bản có chiều sâu cho cả text và image)
+    let isMouseDown = false, lastMouseX = 0, lastMouseY = 0;
+    let isTouching = false, lastTouchX = 0, lastTouchY = 0;
+    let isPinching = false, initialPinchDistance = 0;
+    let starfieldConfig = {}; 
+
     function getNextUniqueImageFilename() { if (imageFilenames.length === 0) return null; if (availableImageIndicesToSpawn.length === 0 || currentSpawnIndex >= availableImageIndicesToSpawn.length) { availableImageIndicesToSpawn = Array.from(Array(imageFilenames.length).keys()); shuffleArray(availableImageIndicesToSpawn); currentSpawnIndex = 0; } if (availableImageIndicesToSpawn.length === 0) return null; const filenameIndex = availableImageIndicesToSpawn[currentSpawnIndex]; currentSpawnIndex++; return imageFilenames[filenameIndex]; }
     function calculateEdgeFadeZones() { edgeFadeZoneX = window.innerWidth * EDGE_FADE_ZONE_RATIO_X; edgeFadeZoneY_Bottom = window.innerHeight * EDGE_FADE_ZONE_RATIO_Y; }
-    function fetchIconsConfig() { return fetch('icons.ini').then(response => { if (!response.ok) throw new Error('Không thể tải file icons.ini'); return response.text(); }).then(data => { const lines = data.split('\n'); iconsConfig = lines.map(line => line.trim()).filter(line => line.length > 0 && !line.startsWith(';')).map(line => { const parts = line.split('|').map(part => part.trim()); if (parts.length === 4) { return { iconClass: parts[0], text: parts[1], color: parts[2], size: parseInt(parts[3], 10) || 20 }; } return null; }).filter(config => config !== null); if (iconsConfig.length === 0) { console.warn("File icons.ini trống."); } }).catch(error => { console.error('Lỗi icons.ini:', error); }); }
-    Promise.all([ fetch('textindex.ini').then(response => { if (!response.ok) throw new Error('Không thể tải file textindex.ini'); return response.text(); }).then(data => { textsContent = data.split('\n').map(line => line.trim()).filter(line => line.length > 0); if (textsContent.length === 0) { textsContent = ["Chữ Rơi", "Ảnh Rơi", "Icon Rơi"]; } }).catch(error => { console.error('Lỗi textindex.ini:', error); textsContent = ["Lỗi Text"]; }), fetchIconsConfig()]).then(() => { initScene(); }).catch(error => { console.error("Lỗi khởi tạo:", error); initScene(); });
-    function initScene() { calculateEdgeFadeZones(); window.addEventListener('resize', calculateEdgeFadeZones); if (textsContent.length > 0) { setTimeout(() => { if (document.querySelectorAll('.falling-text').length < MAX_ACTIVE_TEXTS) createTextElement(); setInterval(createTextElement, TEXT_CREATION_INTERVAL); }, INITIAL_TEXT_SPAWN_DELAY); } if (imageFilenames.length > 0) { setTimeout(() => { if (document.querySelectorAll('.falling-image').length < MAX_ACTIVE_IMAGES) createImageElement(); setInterval(createImageElement, IMAGE_CREATION_INTERVAL); }, INITIAL_IMAGE_SPAWN_DELAY); } else { console.log("Không có ảnh cục bộ."); } if (iconsConfig.length > 0) { setTimeout(() => { if (document.querySelectorAll('.falling-icon-container').length < MAX_ACTIVE_ICONS) createIconElement(); setInterval(createIconElement, ICON_CREATION_INTERVAL); }, INITIAL_ICON_SPAWN_DELAY); } else { console.log("Không có icon config."); } requestAnimationFrame(animationLoop); sceneContainer.style.cursor = 'grab'; updateTextAreaTransform(); }
+    function fetchIconsConfig() { return fetch('icons.ini').then(r => {if(!r.ok) throw new Error('icons.ini load failed'); return r.text()}).then(d => { iconsConfig = d.split('\n').map(l=>l.trim()).filter(l=>l.length>0&&!l.startsWith(';')).map(l=>{const p=l.split('|').map(pt=>pt.trim()); if(p.length===4)return{iconClass:p[0],text:p[1],color:p[2],size:parseInt(p[3],10)||20}; return null;}).filter(c=>c!==null); if(iconsConfig.length===0)console.warn("icons.ini empty/invalid.");}).catch(e=>console.error('icons.ini error:',e));}
+    function fetchStarfieldConfig() { return fetch('starfield.ini').then(r=>{if(!r.ok)throw new Error('starfield.ini load failed');return r.text()}).then(d=>{const l=d.split('\n');l.forEach(ln=>{ln=ln.trim();if(ln.length>0&&!ln.startsWith(';')){const p=ln.split('=');if(p.length>=2){const s=p[0].trim();const v=p.slice(1).join('=').trim();if(s&&v)starfieldConfig[s]=v;else console.warn(`Invalid starfield.ini line (selector/value): "${ln}"`);}else if(ln.length>0)console.warn(`Invalid starfield.ini line (missing '='): "${ln}"`);}});if(Object.keys(starfieldConfig).length===0)console.warn("starfield.ini empty/invalid.")}).catch(e=>{console.error('starfield.ini error:',e);starfieldConfig={};});}
+    function applyStarfieldStyles() { if (Object.keys(starfieldConfig).length > 0) { const sE=document.createElement('style');sE.type='text/css';let cT="";for(const s in starfieldConfig){if(starfieldConfig.hasOwnProperty(s)){cT+=`${s}{\n  box-shadow:${starfieldConfig[s]};\n}\n`;}} if(sE.styleSheet){sE.styleSheet.cssText=cT;}else{sE.appendChild(document.createTextNode(cT));} document.head.appendChild(sE);} else {console.log("No starfield styles from INI.");}}
 
+    Promise.all([
+        fetch('textindex.ini').then(r=>{if(!r.ok)throw new Error('textindex.ini fail');return r.text()}).then(d=>{textsContent=d.split('\n').map(l=>l.trim()).filter(l=>l.length>0);if(textsContent.length===0)textsContent=["Default Text"];}).catch(e=>{console.error('textindex.ini error:',e);textsContent=["Error Text"];}),
+        fetchIconsConfig(),
+        fetchStarfieldConfig()
+    ]).then(() => {
+        applyStarfieldStyles();
+        initScene();
+    }).catch(e => { console.error("Promise.all init error:", e); initScene(); });
 
-    function createTextElement() {
-        if (textsContent.length === 0 || document.querySelectorAll('.falling-text').length >= MAX_ACTIVE_TEXTS) {
-            return;
+    function initScene() {
+        calculateEdgeFadeZones();
+        window.addEventListener('resize', calculateEdgeFadeZones);
+        
+        // --- ĐIỀU KHIỂN NHẠC NỀN (LOGIC ĐƠN GIẢN BAN ĐẦU) ---
+        if (backgroundMusic) {
+            console.log("[Init] Thẻ audio tìm thấy, thử phát nhạc.");
+            let playPromise = backgroundMusic.play();
+
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    console.log("[Init] Nhạc nền đã bắt đầu phát (autoplay hoặc được phép).");
+                }).catch(error => {
+                    console.warn("[Init] Autoplay nhạc nền bị chặn hoặc có lỗi khi play():", error);
+                    // Có thể thêm listener để phát khi người dùng tương tác lần đầu, nhưng theo yêu cầu thì bỏ
+                });
+            } else {
+                console.warn("[Init] backgroundMusic.play() không trả về Promise. Trình duyệt có thể cũ.");
+            }
+
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === 'visible') {
+                    if (backgroundMusic.paused) { 
+                       console.log("[Visibility] Tab hiển thị lại, thử phát lại nhạc.");
+                       let resumePromise = backgroundMusic.play();
+                       if (resumePromise !== undefined) {
+                           resumePromise.catch(error => {
+                               // console.warn("[Visibility] Không thể phát lại nhạc khi tab hiện lại:", error); 
+                           });
+                       }
+                    }
+                } else {
+                    if (!backgroundMusic.paused) { 
+                        backgroundMusic.pause();
+                        console.log("[Visibility] Tab ẩn, nhạc đã dừng.");
+                    }
+                }
+            });
+        } else { 
+            console.warn("Thẻ audio 'background-music' không tìm thấy.");
         }
-        const textContent = textsContent[Math.floor(Math.random() * textsContent.length)];
-        const textElement = document.createElement('div');
-        textElement.classList.add('falling-text');
-        textElement.textContent = textContent;
-        const randomLocalZ = (Math.random() - 0.5) * ELEMENT_Z_DEPTH_RANGE; 
-        textElement.dataset.localZ = randomLocalZ;
-        textElement.style.transform = `translateZ(${randomLocalZ}px) translateX(0px) translateY(0px)`;
-        textElement.dataset.currentTranslateX = 0;
-        textElement.dataset.currentTranslateY = 0;
-        const targetBaseFontSize = window.innerWidth > 768 ? TARGET_APPARENT_FONT_SIZE_DESKTOP : TARGET_APPARENT_FONT_SIZE_MOBILE;
-        const safeScale = Math.max(0.01, currentSceneScale);
-        let calculatedFontSize = targetBaseFontSize / safeScale;
-        calculatedFontSize = Math.max(MIN_EFFECTIVE_FONT_SIZE, Math.min(MAX_EFFECTIVE_FONT_SIZE, calculatedFontSize));
-        textElement.style.fontSize = `${calculatedFontSize}px`;
-        const baseSpeedRandomFactor = Math.random() * 500 + 375;
-        textElement.dataset.baseSpeed = baseSpeedRandomFactor;
-        const randomInitialYPercent = -(Math.random() * 400 + 20);
-        textElement.style.top = `${randomInitialYPercent}%`;
-        const randomInitialXPercent = (Math.random() * 1000) - 500;
-        textElement.style.left = `${randomInitialXPercent}%`;
-        textElement.style.transition = 'opacity 0.5s ease-in-out'; 
-        textArea.appendChild(textElement);
-        setTimeout(() => {
-            setTimeout(() => { textElement.style.transition = ''; }, FADE_DURATION);
-        }, 50);
+        // --- KẾT THÚC ĐIỀU KHIỂN NHẠC NỀN ---
+
+
+        if(textsContent.length>0) setTimeout(()=>{if(document.querySelectorAll('.falling-text').length<MAX_ACTIVE_TEXTS)createTextElement();setInterval(createTextElement,TEXT_CREATION_INTERVAL);},INITIAL_TEXT_SPAWN_DELAY);
+        if(imageFilenames.length>0) setTimeout(()=>{if(document.querySelectorAll('.falling-image').length<MAX_ACTIVE_IMAGES)createImageElement();setInterval(createImageElement,IMAGE_CREATION_INTERVAL);},INITIAL_IMAGE_SPAWN_DELAY);
+        if(iconsConfig.length>0) setTimeout(()=>{if(document.querySelectorAll('.falling-icon-container').length<MAX_ACTIVE_ICONS)createIconElement();setInterval(createIconElement,ICON_CREATION_INTERVAL);},INITIAL_ICON_SPAWN_DELAY);
+        if(MAX_DYNAMIC_STARS > 0) setTimeout(()=>{for(let i=0; i<Math.min(MAX_DYNAMIC_STARS,20);i++){if(document.querySelectorAll('.dynamic-star').length<MAX_DYNAMIC_STARS)createDynamicStar();} setInterval(createDynamicStar,DYNAMIC_STAR_CREATION_INTERVAL);}, INITIAL_DYNAMIC_STAR_SPAWN_DELAY);
+        requestAnimationFrame(animationLoop); sceneContainer.style.cursor='grab'; updateTextAreaTransform();
     }
 
-    function createImageElement() { // <<<< CẬP NHẬT ĐỂ SET VIỀN/BO GÓC ĐỘNG
-        if (imageFilenames.length === 0 || document.querySelectorAll('.falling-image').length >= MAX_ACTIVE_IMAGES) {
-            return;
-        }
-        const imagePath = getNextUniqueImageFilename();
-        if (!imagePath) return;
-        const imageElement = document.createElement('img');
-        imageElement.classList.add('falling-image');
-        imageElement.src = imagePath;
-        imageElement.alt = "Falling image snippet";
-
-        const randomLocalZ = (Math.random() - 0.5) * ELEMENT_Z_DEPTH_RANGE;
-        imageElement.dataset.localZ = randomLocalZ;
-
-        imageElement.style.transform = `translateZ(${randomLocalZ}px) translateX(0px) translateY(0px)`;
-        imageElement.dataset.currentTranslateX = 0;
-        imageElement.dataset.currentTranslateY = 0;
-        
-        const targetBaseImageWidth = window.innerWidth > 768 ? TARGET_APPARENT_IMAGE_WIDTH_DESKTOP : TARGET_APPARENT_IMAGE_WIDTH_MOBILE;
-        const safeScale = Math.max(0.01, currentSceneScale);
-        let calculatedWidth = targetBaseImageWidth / safeScale;
-        calculatedWidth = Math.max(30, Math.min(1200, calculatedWidth));
-        imageElement.style.width = `${calculatedWidth}px`;
-        imageElement.style.height = 'auto';
-
-        // Tính toán và áp dụng viền/bo góc động
-        let normalizedScale = 0;
-        if (MAX_SCENE_SCALE - MIN_SCENE_SCALE > 0.001) { // Tránh chia cho 0 và đảm bảo có khoảng scale
-            normalizedScale = (currentSceneScale - MIN_SCENE_SCALE) / (MAX_SCENE_SCALE - MIN_SCENE_SCALE);
-            normalizedScale = Math.max(0, Math.min(1, normalizedScale)); 
-        } else if (currentSceneScale >= MAX_SCENE_SCALE) {
-            normalizedScale = 1;
-        }
-        
-        const dynamicBorderWidth = MIN_ZOOM_IMAGE_BORDER_WIDTH + normalizedScale * (MAX_ZOOM_IMAGE_BORDER_WIDTH - MIN_ZOOM_IMAGE_BORDER_WIDTH);
-        const dynamicBorderRadius = MIN_ZOOM_IMAGE_BORDER_RADIUS + normalizedScale * (MAX_ZOOM_IMAGE_BORDER_RADIUS - MIN_ZOOM_IMAGE_BORDER_RADIUS);
-
-        imageElement.style.borderWidth = `${Math.round(dynamicBorderWidth)}px`;
-        imageElement.style.borderRadius = `${Math.round(dynamicBorderRadius)}px`;
-        imageElement.style.borderColor = "#BCE1ED"; // Đặt màu viền ở đây vì border trong CSS bị bỏ
-        imageElement.style.borderStyle = "solid"; // Cần đặt cả style
-
-        const imageBaseSpeedFactor = (Math.random() * 200 + 200); 
-        imageElement.dataset.baseSpeed = imageBaseSpeedFactor;
-        
-        const randomInitialYPercent = -(Math.random() * 400 + 20);
-        imageElement.style.top = `${randomInitialYPercent}%`;
-        const randomInitialXPercent = (Math.random() * 800) - 400;
-        imageElement.style.left = `${randomInitialXPercent}%`;
-        
-        imageElement.style.transition = 'opacity 0.5s ease-in-out';
-        
-        imageElement.onload = () => {
-            textArea.appendChild(imageElement);
-            setTimeout(() => {
-                setTimeout(() => { imageElement.style.transition = ''; }, FADE_DURATION);
-            }, 50);
-        };
-        imageElement.onerror = () => {
-            console.warn(`Không tải được ảnh cục bộ: ${imagePath}.`);
-            if (imageElement.parentNode) { imageElement.parentNode.removeChild(imageElement); }
-        };
-    }
-
-    function createIconElement() { // Giữ nguyên, icon không có Z-depth riêng
-        // ... (Code tạo icon như cũ) ...
-        if (iconsConfig.length === 0 || document.querySelectorAll('.falling-icon-container').length >= MAX_ACTIVE_ICONS) { return; }
-        const config = iconsConfig[Math.floor(Math.random() * iconsConfig.length)];
-        const iconContainer = document.createElement('div');
-        iconContainer.classList.add('falling-icon-container');
-        const iconEl = document.createElement('i');
-        config.iconClass.split(' ').forEach(cls => iconEl.classList.add(cls));
-        iconEl.style.color = config.color;
-        const textEl = document.createElement('span');
-        textEl.textContent = config.text;
-        textEl.style.color = config.color;
-        iconContainer.appendChild(iconEl);
-        iconContainer.appendChild(textEl);
-        const targetBaseOverallSize = config.size;
-        const safeScale = Math.max(0.01, currentSceneScale);
-        let calculatedOverallFontSize = targetBaseOverallSize / safeScale;
-        calculatedOverallFontSize = Math.max(10, Math.min(80, calculatedOverallFontSize));
-        iconContainer.style.fontSize = `${calculatedOverallFontSize}px`;
-        iconContainer.style.transform = `translateZ(0px) translateX(0px) translateY(0px)`;
-        iconContainer.dataset.currentTranslateX = 0;
-        iconContainer.dataset.currentTranslateY = 0;
-        const iconBaseSpeedFactor = (Math.random() * 150 + 150);
-        iconContainer.dataset.baseSpeed = iconBaseSpeedFactor;
-        const randomInitialYPercent = -(Math.random() * 350 + 20);
-        iconContainer.style.top = `${randomInitialYPercent}%`;
-        const randomInitialXPercent = (Math.random() * 700) - 350;
-        iconContainer.style.left = `${randomInitialXPercent}%`;
-        iconContainer.style.transition = 'opacity 0.5s ease-in-out';
-        textArea.appendChild(iconContainer);
-        setTimeout(() => { iconContainer.style.opacity = 1; setTimeout(() => { iconContainer.style.transition = ''; }, FADE_DURATION); }, 50);
-    }
+    function createTextElement(){if(textsContent.length===0||document.querySelectorAll('.falling-text').length>=MAX_ACTIVE_TEXTS)return;const tC=textsContent[Math.floor(Math.random()*textsContent.length)];const tE=document.createElement('div');tE.classList.add('falling-text');tE.textContent=tC;const rLZ=(Math.random()-0.5)*ELEMENT_Z_DEPTH_RANGE;tE.dataset.localZ=rLZ;tE.style.transform=`translateZ(${rLZ}px) translateX(0px) translateY(0px)`;tE.dataset.currentTranslateX=0;tE.dataset.currentTranslateY=0;const tBFS=window.innerWidth>768?TARGET_APPARENT_FONT_SIZE_DESKTOP:TARGET_APPARENT_FONT_SIZE_MOBILE;const sS=Math.max(0.01,currentSceneScale);let cFS=tBFS/sS;cFS=Math.max(MIN_EFFECTIVE_FONT_SIZE,Math.min(MAX_EFFECTIVE_FONT_SIZE,cFS));tE.style.fontSize=`${cFS}px`;const bSRF=Math.random()*500+375;tE.dataset.baseSpeed=bSRF;const rIYP=-(Math.random()*400+20);tE.style.top=`${rIYP}%`;const rIXP=(Math.random()*1000)-500;tE.style.left=`${rIXP}%`;tE.style.opacity="0"; textArea.appendChild(tE);setTimeout(()=>{setTimeout(()=>{tE.style.transition='';},FADE_DURATION);},50);}
+    function createImageElement(){if(imageFilenames.length===0||document.querySelectorAll('.falling-image').length>=MAX_ACTIVE_IMAGES)return;const iP=getNextUniqueImageFilename();if(!iP)return;const iE=document.createElement('img');iE.classList.add('falling-image');iE.src=iP;iE.alt="Falling image";const rLZ=(Math.random()-0.5)*ELEMENT_Z_DEPTH_RANGE;iE.dataset.localZ=rLZ;iE.style.transform=`translateZ(${rLZ}px) translateX(0px) translateY(0px)`;iE.dataset.currentTranslateX=0;iE.dataset.currentTranslateY=0;const tBIW=window.innerWidth>768?TARGET_APPARENT_IMAGE_WIDTH_DESKTOP:TARGET_APPARENT_IMAGE_WIDTH_MOBILE;const sS=Math.max(0.01,currentSceneScale);let cW=tBIW/sS;cW=Math.max(30,Math.min(1200,cW));iE.style.width=`${cW}px`;iE.style.height='auto';let nS=0;if(MAX_SCENE_SCALE-MIN_SCENE_SCALE>0.001){nS=(currentSceneScale-MIN_SCENE_SCALE)/(MAX_SCENE_SCALE-MIN_SCENE_SCALE);nS=Math.max(0,Math.min(1,nS));}else if(currentSceneScale>=MAX_SCENE_SCALE)nS=1;const dBW=MIN_ZOOM_IMAGE_BORDER_WIDTH+nS*(MAX_ZOOM_IMAGE_BORDER_WIDTH-MIN_ZOOM_IMAGE_BORDER_WIDTH);const dBR=MIN_ZOOM_IMAGE_BORDER_RADIUS+nS*(MAX_ZOOM_IMAGE_BORDER_RADIUS-MIN_ZOOM_IMAGE_BORDER_RADIUS);iE.style.borderWidth=`${Math.round(dBW)}px`;iE.style.borderRadius=`${Math.round(dBR)}px`;iE.style.borderColor="#BCE1ED";iE.style.borderStyle="solid";const iBSF=(Math.random()*200+200);iE.dataset.baseSpeed=iBSF;const rIYP=-(Math.random()*400+20);iE.style.top=`${rIYP}%`;const rIXP=(Math.random()*800)-400;iE.style.left=`${rIXP}%`; iE.style.opacity="0"; iE.onload=()=>{textArea.appendChild(iE);setTimeout(()=>{setTimeout(()=>{iE.style.transition='';},FADE_DURATION);},50);};iE.onerror=()=>{console.warn(`Failed to load image: ${iP}.`);if(iE.parentNode)iE.parentNode.removeChild(iE);};}
+    function createIconElement(){if(iconsConfig.length===0||document.querySelectorAll('.falling-icon-container').length>=MAX_ACTIVE_ICONS)return;const c=iconsConfig[Math.floor(Math.random()*iconsConfig.length)];const iC=document.createElement('div');iC.classList.add('falling-icon-container');const iEl=document.createElement('i');c.iconClass.split(' ').forEach(cl=>iEl.classList.add(cl));iEl.style.color=c.color;const tEl=document.createElement('span');tEl.textContent=c.text;tEl.style.color=c.color;iC.appendChild(iEl);iC.appendChild(tEl);const tBOS=c.size;const sS=Math.max(0.01,currentSceneScale);let cOFS=tBOS/sS;cOFS=Math.max(10,Math.min(80,cOFS));iC.style.fontSize=`${cOFS}px`;iC.style.transform=`translateZ(0px) translateX(0px) translateY(0px)`;iC.dataset.currentTranslateX=0;iC.dataset.currentTranslateY=0;const iBSF=(Math.random()*150+150);iC.dataset.baseSpeed=iBSF;const rIYP=-(Math.random()*350+20);iC.style.top=`${rIYP}%`;const rIXP=(Math.random()*700)-350;iC.style.left=`${rIXP}%`;iC.style.transition='opacity 0.5s ease-in-out';textArea.appendChild(iC);setTimeout(()=>{iC.style.opacity=1;setTimeout(()=>{iC.style.transition='';},FADE_DURATION);},50);}
+    function createDynamicStar(){const stars=document.querySelectorAll('.dynamic-star');if(stars.length>=MAX_DYNAMIC_STARS){const oS=stars[0];if(oS)oS.remove();} const s=document.createElement('div');s.classList.add('dynamic-star');const sz=Math.random()*(MAX_DYNAMIC_STAR_SIZE-MIN_DYNAMIC_STAR_SIZE)+MIN_DYNAMIC_STAR_SIZE;s.style.width=`${sz}px`;s.style.height=`${sz}px`;const rLZ=(Math.random()-0.5)*ELEMENT_Z_DEPTH_RANGE*0.3; s.dataset.localZ=rLZ;const iXP=Math.random()*100;const iYP=Math.random()*100;s.style.left=`${iXP}%`;s.style.top=`${iYP}%`;const r=200+Math.floor(Math.random()*56);const g=200+Math.floor(Math.random()*56);const b=220+Math.floor(Math.random()*36);s.style.backgroundColor=`rgb(${r},${g},${b})`;s.style.opacity="0";s.dataset.currentOpacity=Math.random()*0.4+0.3;s.dataset.opacityDirection=(Math.random()<0.5?-1:1)*DYNAMIC_STAR_TWINKLE_SPEED_FACTOR;const sX=(Math.random()-0.5)*60;const sY=(Math.random()-0.5)*60;s.dataset.speedX=sX;s.dataset.speedY=sY;s.dataset.currentTranslateX=0;s.dataset.currentTranslateY=0;const lifetime=Math.random()*(DYNAMIC_STAR_MAX_LIFETIME-2000)+2000; s.dataset.creationTime=performance.now(); s.dataset.lifetime=lifetime;textArea.appendChild(s);}
 
     let lastFrameTime = 0;
     function animationLoop(currentTime) {
-        // ... (Phần đầu của animationLoop giữ nguyên) ...
         if (!lastFrameTime) { lastFrameTime = currentTime; requestAnimationFrame(animationLoop); return; }
         const deltaTime = (currentTime - lastFrameTime) / 1000;
         lastFrameTime = currentTime;
@@ -241,91 +181,107 @@ document.addEventListener('DOMContentLoaded', () => {
             const elementsOnScreen = textArea.querySelectorAll(selector);
             elementsOnScreen.forEach(el => {
                 if (!el.parentNode) return;
-                const baseSpeed = parseFloat(el.dataset.baseSpeed);
-                let currentTX = parseFloat(el.dataset.currentTranslateX || 0);
-                let currentTY = parseFloat(el.dataset.currentTranslateY || 0);
-                
-                let localZ = 0; 
-                let finalSpeed = baseSpeed;
-                let opacityFromZ = 1.0;
+                let baseSpeed = 0, currentTX = 0, currentTY = 0, localZ = 0;
+                let finalSpeedX = 0, finalSpeedY = 0, opacityFromZ = 1.0, elOriginalSize = 20;
 
-                if ((elementType === 'text' || elementType === 'image') && el.dataset.localZ) {
-                    localZ = parseFloat(el.dataset.localZ);
-                    const halfZRange = ELEMENT_Z_DEPTH_RANGE / 2;
-                    if (halfZRange > 0) { 
-                        const normZ = localZ / halfZRange; 
-                        finalSpeed = baseSpeed * (1 + normZ * Z_SPEED_EFFECT_STRENGTH);
-                        finalSpeed = Math.max(baseSpeed * 0.1, finalSpeed); 
-                        opacityFromZ = 1 - (Math.max(0, -normZ) * Z_OPACITY_EFFECT_STRENGTH);
-                        opacityFromZ = Math.max(0.1, opacityFromZ);
+                currentTX = parseFloat(el.dataset.currentTranslateX || 0);
+                currentTY = parseFloat(el.dataset.currentTranslateY || 0);
+
+                if (elementType === 'text' || elementType === 'image') {
+                    baseSpeed = parseFloat(el.dataset.baseSpeed);
+                    let elementSpeed = baseSpeed;
+                    if (el.dataset.localZ) {
+                        localZ = parseFloat(el.dataset.localZ);
+                        const halfZRange = ELEMENT_Z_DEPTH_RANGE / 2;
+                        if (halfZRange > 0) {
+                            const normZ = localZ / halfZRange;
+                            elementSpeed = baseSpeed * (1 + normZ * Z_SPEED_EFFECT_STRENGTH);
+                            elementSpeed = Math.max(baseSpeed * 0.1, elementSpeed);
+                            opacityFromZ = 1 - (Math.max(0, -normZ) * Z_OPACITY_EFFECT_STRENGTH);
+                            opacityFromZ = Math.max(0.1, opacityFromZ);
+                        }
+                    }
+                    finalSpeedX = screenDownLocalX * elementSpeed;
+                    finalSpeedY = screenDownLocalY * elementSpeed;
+                    elOriginalSize = (elementType==='text')?(el.offsetHeight||(parseFloat(el.style.fontSize)||20)):(el.offsetHeight||(parseFloat(el.style.width)*0.75||50));
+                } else if (elementType === 'icon') {
+                    baseSpeed = parseFloat(el.dataset.baseSpeed);
+                    finalSpeedX = screenDownLocalX * baseSpeed;
+                    finalSpeedY = screenDownLocalY * baseSpeed;
+                    elOriginalSize = el.offsetHeight || (parseFloat(el.style.fontSize) || 20);
+                } else if (elementType === 'star') {
+                    finalSpeedX = parseFloat(el.dataset.speedX || 0);
+                    finalSpeedY = parseFloat(el.dataset.speedY || 0);
+                    if(el.dataset.localZ) localZ = parseFloat(el.dataset.localZ);
+                    elOriginalSize = parseFloat(el.style.width || 2);
+                    
+                    let currentOpacity = parseFloat(el.dataset.currentOpacity);
+                    let opacityDirection = parseFloat(el.dataset.opacityDirection);
+                    const creationTime = parseFloat(el.dataset.creationTime);
+                    const lifetime = parseFloat(el.dataset.lifetime);
+                    const age = currentTime - creationTime;
+
+                    if (age > lifetime - DYNAMIC_STAR_FADE_OUT_DURATION) { 
+                        currentOpacity -= (DYNAMIC_STAR_TWINKLE_SPEED_FACTOR * 3 * deltaTime); 
+                    } else {
+                        currentOpacity += opacityDirection * deltaTime;
+                        if (currentOpacity > 0.9) { currentOpacity = 0.9; opacityDirection *= -1; }
+                        if (currentOpacity < 0.2) { currentOpacity = 0.2; opacityDirection *= -1; }
+                    }
+                    currentOpacity = Math.max(0, Math.min(1, currentOpacity));
+                    el.dataset.currentOpacity = currentOpacity;
+                    el.dataset.opacityDirection = opacityDirection;
+                    opacityFromZ = currentOpacity; 
+
+                    if (age > lifetime) { 
+                        if (el.parentNode) el.remove();
+                        return;
                     }
                 }
-
-                let elOriginalSize;
-                if (elementType === 'text' || elementType === 'icon') {
-                    elOriginalSize = el.offsetHeight || (parseFloat(el.style.fontSize) || 20);
-                } else if (elementType === 'image') {
-                    elOriginalSize = el.offsetHeight || (parseFloat(el.style.width) * 0.75 || 50); 
-                } else {
-                    elOriginalSize = 20;
-                }
                 
-                const displacement = finalSpeed * deltaTime;
-                currentTX += screenDownLocalX * displacement;
-                currentTY += screenDownLocalY * displacement;
+                currentTX += finalSpeedX * deltaTime;
+                currentTY += finalSpeedY * deltaTime;
                 el.dataset.currentTranslateX = currentTX;
                 el.dataset.currentTranslateY = currentTY;
                 el.style.transform = `translateZ(${localZ}px) translateX(${currentTX}px) translateY(${currentTY}px)`;
                 
                 const rect = el.getBoundingClientRect();
-                const elW = rect.width;
-                const elH = rect.height;
-
-                if (elW === 0 && elH === 0 && el.dataset.initialRenderAttempted !== "true") {
+                if (rect.width === 0 && rect.height === 0 && el.dataset.initialRenderAttempted !== "true") {
                     el.dataset.initialRenderAttempted = "true";
-                    const estVisualTopPercent = parseFloat(el.style.top);
-                    const estVisualTopPx = (estVisualTopPercent / 100 * textArea.offsetHeight) + currentTY;
-                    if (estVisualTopPx < -viewportH * 3 || estVisualTopPx > viewportH * 4) {
-                        if (el.parentNode) textArea.removeChild(el);
-                        return;
-                    }
-                } else if (elW > 0 || elH > 0) {
-                    let opacityFromEdges = 1.0;
-                    if (rect.bottom > viewportH - edgeFadeZoneY_Bottom && edgeFadeZoneY_Bottom > 0) {
-                        const progressBottom = Math.min(1, (rect.bottom - (viewportH - edgeFadeZoneY_Bottom)) / edgeFadeZoneY_Bottom);
-                        opacityFromEdges = Math.min(opacityFromEdges, 1 - progressBottom);
-                    }
-                    opacityFromEdges = Math.max(0, opacityFromEdges);
+                    const estVP = parseFloat(el.style.top);const estVPx=(estVP/100*textArea.offsetHeight)+currentTY;if(estVPx<-viewportH*3||estVPx>viewportH*4){if(el.parentNode)el.remove();return;}
+                } else if (rect.width > 0 || rect.height > 0) {
+                    let oFE = 1.0; 
+                    if (EDGE_FADE_ZONE_RATIO_Y > 0 && rect.bottom > viewportH - edgeFadeZoneY_Bottom) {const pB=Math.min(1,(rect.bottom-(viewportH-edgeFadeZoneY_Bottom))/edgeFadeZoneY_Bottom);oFE=Math.min(oFE,1-pB);}
+                    oFE = Math.max(0, oFE);
                     
-                    el.style.opacity = Math.min(opacityFromEdges, opacityFromZ).toFixed(2);
-
-                    const removeThreshold = elOriginalSize * 1.8;
-                    if (parseFloat(el.style.opacity) <= 0.01 ||
-                        rect.bottom < -removeThreshold || rect.top > viewportH + removeThreshold ||
-                        rect.right < -removeThreshold || rect.left > viewportW + removeThreshold) {
-                        if (el.parentNode) textArea.removeChild(el);
+                    if (elementType !== 'star') { 
+                        el.style.opacity = Math.min(oFE, opacityFromZ).toFixed(2);
+                    } else {
+                         el.style.opacity = opacityFromZ.toFixed(2); 
                     }
+
+                    const rT = elOriginalSize * (elementType === 'star' ? 1 : 1.8);
+                    if (parseFloat(el.style.opacity)<=0.01||rect.bottom<-rT||rect.top>viewportH+rT||rect.right<-rT||rect.left>viewportW+rT){if(el.parentNode)el.remove();}
                 }
             });
         }
         animateFallingElement('.falling-text', 'text');
         animateFallingElement('.falling-image', 'image');
         animateFallingElement('.falling-icon-container', 'icon');
+        animateFallingElement('.dynamic-star', 'star');
         requestAnimationFrame(animationLoop);
     }
 
-    // ... (updateTextAreaTransform và Event Listeners giữ nguyên) ...
-    function updateTextAreaTransform() { const translateZValue = FIXED_SCENE_Z_DEPTH; currentSceneScale = Math.max(MIN_SCENE_SCALE, Math.min(MAX_SCENE_SCALE, currentSceneScale)); currentRotationX = Math.max(-maxAngle, Math.min(maxAngle, currentRotationX)); currentRotationY = Math.max(-maxAngle, Math.min(35, currentRotationY)); textArea.style.transform = `translateZ(${translateZValue}px) scale(${currentSceneScale}) rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`; }
+    function updateTextAreaTransform() { const tZV = FIXED_SCENE_Z_DEPTH; currentSceneScale = Math.max(MIN_SCENE_SCALE, Math.min(MAX_SCENE_SCALE, currentSceneScale)); currentRotationX = Math.max(-maxAngle, Math.min(maxAngle, currentRotationX)); currentRotationY = Math.max(-maxAngle, Math.min(35, currentRotationY)); textArea.style.transform = `translateZ(${tZV}px) scale(${currentSceneScale}) rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`; }
     sceneContainer.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isMouseDown = true; isPinching = false; isTouching = false; lastMouseX = e.clientX; lastMouseY = e.clientY; sceneContainer.style.cursor = 'grabbing'; });
-    document.addEventListener('mousemove', (e) => { if (!isMouseDown) return; const deltaX = e.clientX - lastMouseX; const deltaY = e.clientY - lastMouseY; currentRotationY += deltaX * rotationSensitivityMouse; currentRotationX -= deltaY * rotationSensitivityMouse; updateTextAreaTransform(); lastMouseX = e.clientX; lastMouseY = e.clientY; });
+    document.addEventListener('mousemove', (e) => { if (!isMouseDown) return; const dX = e.clientX - lastMouseX; const dY = e.clientY - lastMouseY; currentRotationY += dX * rotationSensitivityMouse; currentRotationX -= dY * rotationSensitivityMouse; updateTextAreaTransform(); lastMouseX = e.clientX; lastMouseY = e.clientY; });
     document.addEventListener('mouseup', () => { if (isMouseDown) { isMouseDown = false; sceneContainer.style.cursor = 'grab'; } });
     document.addEventListener('mouseleave', () => { if (isMouseDown) { isMouseDown = false; sceneContainer.style.cursor = 'default'; } });
     sceneContainer.addEventListener('mouseenter', () => { if (!isMouseDown && !isTouching && !isPinching) { sceneContainer.style.cursor = 'grab'; } });
-    sceneContainer.addEventListener('wheel', (e) => { e.preventDefault(); const delta = Math.sign(e.deltaY); currentSceneScale -= delta * ZOOM_SENSITIVITY_MOUSE_WHEEL; updateTextAreaTransform(); }, { passive: false });
+    sceneContainer.addEventListener('wheel', (e) => { e.preventDefault(); const d = Math.sign(e.deltaY); currentSceneScale -= d * ZOOM_SENSITIVITY_MOUSE_WHEEL; updateTextAreaTransform(); }, { passive: false });
     sceneContainer.addEventListener('touchstart', (e) => { isMouseDown = false; sceneContainer.style.cursor = 'grabbing'; if (e.touches.length === 1) { isTouching = true; isPinching = false; lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; } else if (e.touches.length === 2) { isTouching = false; isPinching = true; initialPinchDistance = getDistanceBetweenTouches(e.touches); } }, { passive: false });
-    sceneContainer.addEventListener('touchmove', (e) => { if (isTouching && e.touches.length === 1) { if (e.cancelable) e.preventDefault(); const touchX = e.touches[0].clientX; const touchY = e.touches[0].clientY; const deltaX = touchX - lastTouchX; const deltaY = touchY - lastTouchY; currentRotationY += deltaX * rotationSensitivityTouch; currentRotationX -= deltaY * rotationSensitivityTouch; updateTextAreaTransform(); lastTouchX = touchX; lastTouchY = touchY; } else if (isPinching && e.touches.length === 2) { if (e.cancelable) e.preventDefault(); const currentPinchDistance = getDistanceBetweenTouches(e.touches); const deltaDistance = currentPinchDistance - initialPinchDistance; currentSceneScale += deltaDistance * ZOOM_SENSITIVITY_PINCH; updateTextAreaTransform(); initialPinchDistance = currentPinchDistance; } }, { passive: false });
-    sceneContainer.addEventListener('touchend', (e) => { if (isMouseDown) { sceneContainer.style.cursor = 'grabbing';} else if (e.touches.length > 0 && (isTouching || isPinching)) { sceneContainer.style.cursor = 'grabbing';} else { sceneContainer.style.cursor = 'grab';} if (isTouching && e.touches.length === 0) { isTouching = false; } if (isPinching && e.touches.length < 2) { isPinching = false; } if (!isPinching && e.touches.length === 1) { isTouching = true; lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; } });
+    sceneContainer.addEventListener('touchmove', (e) => { if (isTouching && e.touches.length === 1) { if (e.cancelable) e.preventDefault(); const tX = e.touches[0].clientX; const tY = e.touches[0].clientY; const dX = tX - lastTouchX; const dY = tY - lastTouchY; currentRotationY += dX * rotationSensitivityTouch; currentRotationX -= dY * rotationSensitivityTouch; updateTextAreaTransform(); lastTouchX = tX; lastTouchY = tY; } else if (isPinching && e.touches.length === 2) { if (e.cancelable) e.preventDefault(); const cPD = getDistanceBetweenTouches(e.touches); const dD = cPD - initialPinchDistance; currentSceneScale += dD * ZOOM_SENSITIVITY_PINCH; updateTextAreaTransform(); initialPinchDistance = cPD; } }, { passive: false });
+    sceneContainer.addEventListener('touchend', (e) => { if (isMouseDown) { sceneContainer.style.cursor = 'grabbing';} else if (e.touches.length > 0 && (isTouching || isPinching)) { sceneContainer.style.cursor = 'grabbing';} else { sceneContainer.style.cursor = 'grab';} if (isTouching && e.touches.length === 0) isTouching = false; if (isPinching && e.touches.length < 2) isPinching = false; if (!isPinching && e.touches.length === 1) { isTouching = true; lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; } });
     sceneContainer.addEventListener('touchcancel', () => { isTouching = false; isPinching = false; isMouseDown = false; sceneContainer.style.cursor = 'grab'; });
-    function getDistanceBetweenTouches(touches) { const touch1 = touches[0]; const touch2 = touches[1]; return Math.sqrt( Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2) ); }
-
+    function getDistanceBetweenTouches(touches) { const t1 = touches[0]; const t2 = touches[1]; return Math.sqrt( Math.pow(t2.clientX - t1.clientX, 2) + Math.pow(t2.clientY - t1.clientY, 2) ); }
 });
