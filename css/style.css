@@ -183,8 +183,12 @@ body, html {
 
 .falling-image {
     position: absolute;
-    border-radius: 100px; 
-    border: 20px solid #BCE1ED;
+    /* border-radius: 15px; */ /* Dòng cũ */
+    /* border: 2px solid #BCE1ED; */ /* Dòng cũ */
+    
+    border-radius: 50px; /* <<<< THAY ĐỔI: Bo góc tròn hơn */
+    border: 10px solid #BCE1ED; /* <<<< THAY ĐỔI: Viền dày hơn */
+    
     opacity: 0; 
     box-shadow: 
         0 0 3px 1px #BCE1ED, 
