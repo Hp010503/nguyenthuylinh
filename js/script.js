@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rotationSensitivityTouch = 0.15;
     const maxAngle = 75;
     
-    const MIN_SCENE_SCALE = 0.3;
+    const MIN_SCENE_SCALE = 0.1;
     let currentSceneScale = MIN_SCENE_SCALE; 
     const MAX_SCENE_SCALE = 2.0;
     const ZOOM_SENSITIVITY_MOUSE_WHEEL = 0.03;
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const TARGET_APPARENT_FONT_SIZE_DESKTOP = 30;
     const TARGET_APPARENT_FONT_SIZE_MOBILE = 22;
     const MIN_EFFECTIVE_FONT_SIZE = 1;
-    const MAX_EFFECTIVE_FONT_SIZE = 2000; 
+    const MAX_EFFECTIVE_FONT_SIZE = 300; 
     
     const EDGE_FADE_ZONE_RATIO_X = 0;
     const EDGE_FADE_ZONE_RATIO_Y = 0; 
