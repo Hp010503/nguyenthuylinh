@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- CÁC THAM SỐ CẤU HÌNH ---
     const FADE_DURATION = 500;
+    // TEXT & IMAGE COMMON Z-DEPTH PARAMETERS (Sử dụng chung cho cả text và image)
+    const ELEMENT_Z_DEPTH_RANGE = 600;      // <<<< THAY ĐỔI: Phạm vi Z chung (vd: -300 đến +300)
+    const Z_SPEED_EFFECT_STRENGTH = 0.3;   
+    const Z_OPACITY_EFFECT_STRENGTH = 0.4; // <<<< Giảm nhẹ hiệu ứng mờ cho ảnh để rõ hơn
+
     // TEXT
     const MAX_ACTIVE_TEXTS = 20; 
     const TEXT_CREATION_INTERVAL = 80; 
@@ -43,12 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_ACTIVE_ICONS = 4; 
     const ICON_CREATION_INTERVAL = 2800;  
     const INITIAL_ICON_SPAWN_DELAY = 2500;
-    // SCENE & DEPTH EFFECTS
-    const PERSPECTIVE_VALUE_FROM_CSS = 1000; // <<<< CẬP NHẬT: Khớp với CSS của bạn
-    const FIXED_SCENE_Z_DEPTH = -1200;      // <<<< CẬP NHẬT: Đẩy scene ra xa hơn
-    const TEXT_Z_DEPTH_RANGE = 800;         // <<<< CẬP NHẬT: Tăng phạm vi Z cho text (sẽ là -400 đến +400 so với #text-area)
-    const Z_SPEED_EFFECT_STRENGTH = 0.3;    // <<<< MỚI: 0=ko ảnh hưởng, 0.3=chênh lệch tốc độ 30% ở biên Z
-    const Z_OPACITY_EFFECT_STRENGTH = 0.5;  // <<<< MỚI: 0=ko ảnh hưởng, 0.5=mờ 50% ở Z xa nhất
+    // SCENE
+    const PERSPECTIVE_VALUE_FROM_CSS = 1000; 
+    const FIXED_SCENE_Z_DEPTH = -1200;     
     // SPEED
     const MIN_VIEW_SPEED_MULTIPLIER = 1.0;
     const MAX_VIEW_SPEED_MULTIPLIER = 1.0;
@@ -204,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textElement.classList.add('falling-text');
         textElement.textContent = textContent;
 
-        const randomLocalZ = (Math.random() - 0.5) * TEXT_Z_DEPTH_RANGE; // Từ -RANGE/2 đến +RANGE/2
+        const randomLocalZ = (Math.random() - 0.5) * ELEMENT_Z_DEPTH_RANGE; // Sử dụng ELEMENT_Z_DEPTH_RANGE
         textElement.dataset.localZ = randomLocalZ;
 
         textElement.style.transform = `translateZ(${randomLocalZ}px) translateX(0px) translateY(0px)`;
@@ -225,16 +227,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const randomInitialXPercent = (Math.random() * 1000) - 500;
         textElement.style.left = `${randomInitialXPercent}%`;
         
-        textElement.style.transition = 'opacity 0.5s ease-in-out'; // Chỉ cho fade-in ban đầu
+        textElement.style.transition = 'opacity 0.5s ease-in-out'; 
         textArea.appendChild(textElement);
         setTimeout(() => {
-            // Opacity ban đầu sẽ được tính toán trong animationLoop dựa trên localZ
-            // textElement.style.opacity = 1; // Bỏ dòng này
+            // Opacity ban đầu sẽ được tính trong animationLoop
             setTimeout(() => { textElement.style.transition = ''; }, FADE_DURATION);
-        }, 50); // Delay nhỏ để CSS render và JS có thể tính toán opacity
+        }, 50);
     }
 
-    function createImageElement() { // Ảnh và Icon giữ nguyên, không có localZ riêng
+    function createImageElement() { // <<<< CẬP NHẬT
         if (imageFilenames.length === 0 || document.querySelectorAll('.falling-image').length >= MAX_ACTIVE_IMAGES) {
             return;
         }
@@ -244,26 +245,35 @@ document.addEventListener('DOMContentLoaded', () => {
         imageElement.classList.add('falling-image');
         imageElement.src = imagePath;
         imageElement.alt = "Falling image snippet";
-        imageElement.style.transform = `translateZ(0px) translateX(0px) translateY(0px)`;
+
+        const randomLocalZ = (Math.random() - 0.5) * ELEMENT_Z_DEPTH_RANGE; // Sử dụng ELEMENT_Z_DEPTH_RANGE
+        imageElement.dataset.localZ = randomLocalZ;
+
+        imageElement.style.transform = `translateZ(${randomLocalZ}px) translateX(0px) translateY(0px)`;
         imageElement.dataset.currentTranslateX = 0;
         imageElement.dataset.currentTranslateY = 0;
+        
         const targetBaseImageWidth = window.innerWidth > 768 ? TARGET_APPARENT_IMAGE_WIDTH_DESKTOP : TARGET_APPARENT_IMAGE_WIDTH_MOBILE;
         const safeScale = Math.max(0.01, currentSceneScale);
         let calculatedWidth = targetBaseImageWidth / safeScale;
         calculatedWidth = Math.max(30, Math.min(1200, calculatedWidth));
         imageElement.style.width = `${calculatedWidth}px`;
         imageElement.style.height = 'auto';
+        
         const imageBaseSpeedFactor = (Math.random() * 200 + 200); 
         imageElement.dataset.baseSpeed = imageBaseSpeedFactor;
+        
         const randomInitialYPercent = -(Math.random() * 400 + 20);
         imageElement.style.top = `${randomInitialYPercent}%`;
         const randomInitialXPercent = (Math.random() * 800) - 400;
         imageElement.style.left = `${randomInitialXPercent}%`;
+        
         imageElement.style.transition = 'opacity 0.5s ease-in-out';
+        
         imageElement.onload = () => {
             textArea.appendChild(imageElement);
             setTimeout(() => {
-                imageElement.style.opacity = 1;
+                // Opacity ban đầu sẽ được tính trong animationLoop
                 setTimeout(() => { imageElement.style.transition = ''; }, FADE_DURATION);
             }, 50);
         };
@@ -277,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (iconsConfig.length === 0 || document.querySelectorAll('.falling-icon-container').length >= MAX_ACTIVE_ICONS) {
             return;
         }
+        // ... (Code tạo icon không đổi) ...
         const config = iconsConfig[Math.floor(Math.random() * iconsConfig.length)];
         const iconContainer = document.createElement('div');
         iconContainer.classList.add('falling-icon-container');
@@ -293,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let calculatedOverallFontSize = targetBaseOverallSize / safeScale;
         calculatedOverallFontSize = Math.max(10, Math.min(80, calculatedOverallFontSize));
         iconContainer.style.fontSize = `${calculatedOverallFontSize}px`;
-        iconContainer.style.transform = `translateZ(0px) translateX(0px) translateY(0px)`;
+        iconContainer.style.transform = `translateZ(0px) translateX(0px) translateY(0px)`; // Icon vẫn ở Z=0
         iconContainer.dataset.currentTranslateX = 0;
         iconContainer.dataset.currentTranslateY = 0;
         const iconBaseSpeedFactor = (Math.random() * 150 + 150);
@@ -305,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         iconContainer.style.transition = 'opacity 0.5s ease-in-out';
         textArea.appendChild(iconContainer);
         setTimeout(() => {
-            iconContainer.style.opacity = 1;
+            iconContainer.style.opacity = 1; // Icon không có hiệu ứng Z-opacity nên set trực tiếp
             setTimeout(() => { iconContainer.style.transition = ''; }, FADE_DURATION);
         }, 50);
     }
@@ -336,24 +347,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let localZ = 0; 
                 let finalSpeed = baseSpeed;
-                let opacityFromZ = 1.0;
+                let opacityFromZ = 1.0; // Opacity do hiệu ứng Z (mặc định là 1)
 
-                if (elementType === 'text' && el.dataset.localZ) {
+                if ((elementType === 'text' || elementType === 'image') && el.dataset.localZ) { // <<<< ÁP DỤNG CHO CẢ TEXT VÀ IMAGE
                     localZ = parseFloat(el.dataset.localZ);
-                    const halfZRange = TEXT_Z_DEPTH_RANGE / 2;
-                    if (halfZRange > 0) { // Tránh chia cho 0
-                        const normZ = localZ / halfZRange; // Từ -1 (xa nhất) đến +1 (gần nhất)
-                        
-                        // Parallax Speed: Xa hơn -> chậm hơn, Gần hơn -> nhanh hơn
+                    const halfZRange = ELEMENT_Z_DEPTH_RANGE / 2;
+                    if (halfZRange > 0) { 
+                        const normZ = localZ / halfZRange; 
                         finalSpeed = baseSpeed * (1 + normZ * Z_SPEED_EFFECT_STRENGTH);
-                        finalSpeed = Math.max(baseSpeed * 0.1, finalSpeed); // Giới hạn tốc độ tối thiểu
-
-                        // Opacity based on Z (Fog/Haze): Xa hơn -> mờ hơn
-                        // -normZ: từ +1 (xa nhất) đến -1 (gần nhất)
-                        // Math.max(0, -normZ): sẽ là 1 cho vật xa nhất, 0 cho vật từ Z=0 đến gần nhất
+                        finalSpeed = Math.max(baseSpeed * 0.1, finalSpeed); 
                         opacityFromZ = 1 - (Math.max(0, -normZ) * Z_OPACITY_EFFECT_STRENGTH);
-                        opacityFromZ = Math.max(0.1, opacityFromZ); // Giới hạn opacity tối thiểu do Z
+                        opacityFromZ = Math.max(0.1, opacityFromZ);
                     }
+                } else if (elementType === 'icon') {
+                    // Icon không có hiệu ứng Z-depth riêng lẻ, opacityFromZ luôn là 1
                 }
 
                 let elOriginalSize;
@@ -375,17 +382,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rect = el.getBoundingClientRect();
                 const elW = rect.width;
                 const elH = rect.height;
-
-                // Chỉ đặt opacity ban đầu cho text nếu nó là 'initialRenderAttempted'
-                // Các element khác đã có opacity 1 từ setTimeout trong hàm tạo
-                if (elementType === 'text' && el.style.opacity === "0") { // Chỉ cho lần đầu text xuất hiện
-                     // Opacity được kết hợp ngay
+                
+                if ((elementType === 'text' || elementType === 'image') && el.style.opacity === "0") {
+                    // Không làm gì, opacity sẽ được set dựa trên tính toán bên dưới
                 }
-
 
                 if (elW === 0 && elH === 0 && el.dataset.initialRenderAttempted !== "true") {
                     el.dataset.initialRenderAttempted = "true";
-                    // (Logic xóa nếu quá xa ban đầu - giữ nguyên)
                     const estVisualTopPercent = parseFloat(el.style.top);
                     const estVisualTopPx = (estVisualTopPercent / 100 * textArea.offsetHeight) + currentTY;
                     if (estVisualTopPx < -viewportH * 3 || estVisualTopPx > viewportH * 4) {
@@ -400,7 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     opacityFromEdges = Math.max(0, opacityFromEdges);
                     
-                    // Kết hợp opacity từ Z và opacity từ các cạnh
                     el.style.opacity = Math.min(opacityFromEdges, opacityFromZ).toFixed(2);
 
                     const removeThreshold = elOriginalSize * 1.8;
@@ -414,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         animateFallingElement('.falling-text', 'text');
         animateFallingElement('.falling-image', 'image');
-        animateFallingElement('.falling-icon-container', 'icon');
+        animateFallingElement('.falling-icon-container', 'icon'); // Icon vẫn được xử lý, nhưng localZ sẽ là 0
         requestAnimationFrame(animationLoop);
     }
 
