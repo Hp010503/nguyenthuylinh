@@ -11,14 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const textArea = document.getElementById('text-area');
     let textsContent = [];
 
-    // --- CÁC THAM SỐ CẤU HÌNH ---
+    // --- CÁC THAM SỐ CẤU HÌNH (ĐIỀU CHỈNH ĐỂ GIẢM LAG) ---
     const FADE_DURATION = 500;
     // TEXT
-    const TEXT_CREATION_INTERVAL = 50;
+    const MAX_ACTIVE_TEXTS = 20; // <<<< GIỚI HẠN SỐ LƯỢNG CHỮ
+    const TEXT_CREATION_INTERVAL = 80; // <<<< TĂNG INTERVAL
     const INITIAL_TEXT_SPAWN_DELAY = 500;
     // IMAGE
-    const MAX_ACTIVE_IMAGES = 10;
-    const IMAGE_CREATION_INTERVAL = 1500;
+    const MAX_ACTIVE_IMAGES = 6; // <<<< GIẢM SỐ LƯỢNG ẢNH
+    const IMAGE_CREATION_INTERVAL = 2200; // <<<< TĂNG INTERVAL
     const INITIAL_IMAGE_SPAWN_DELAY = 1500;
     const imageFilenames = [
         'assets/images/491217300_1017294157207209_1811657879217783755_n.jpg',
@@ -39,13 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 175;
     // ICON
     let iconsConfig = [];
-    const MAX_ACTIVE_ICONS = 7;
-    const ICON_CREATION_INTERVAL = 2000;
+    const MAX_ACTIVE_ICONS = 4; // <<<< GIẢM SỐ LƯỢNG ICON
+    const ICON_CREATION_INTERVAL = 2800;  // <<<< TĂNG INTERVAL
     const INITIAL_ICON_SPAWN_DELAY = 2500;
     // SCENE
-    const PERSPECTIVE_VALUE_FROM_CSS = 1000; // Giữ lại giá trị này để tham chiếu, nhưng không dùng trực tiếp nếu muốn thay đổi dễ
-    const FIXED_SCENE_Z_DEPTH = -800; // <<<< THAY ĐỔI Ở ĐÂY (Đẩy scene ra xa hơn)
-                                      // Giá trị này nên có độ lớn bằng hoặc lớn hơn PERSPECTIVE_VALUE_FROM_CSS một chút
+    const PERSPECTIVE_VALUE_FROM_CSS = 800; // Khớp với CSS
+    const FIXED_SCENE_Z_DEPTH = -800; 
     // SPEED
     const MIN_VIEW_SPEED_MULTIPLIER = 1.0;
     const MAX_VIEW_SPEED_MULTIPLIER = 1.0;
@@ -159,14 +159,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (textsContent.length > 0) {
             setTimeout(() => {
-                createTextElement();
+                if (document.querySelectorAll('.falling-text').length < MAX_ACTIVE_TEXTS) {
+                    createTextElement(); // Tạo ngay nếu slot còn trống
+                }
                 setInterval(createTextElement, TEXT_CREATION_INTERVAL);
             }, INITIAL_TEXT_SPAWN_DELAY);
         }
 
         if (imageFilenames.length > 0) {
             setTimeout(() => {
-                createImageElement();
+                if (document.querySelectorAll('.falling-image').length < MAX_ACTIVE_IMAGES) {
+                    createImageElement();
+                }
                 setInterval(createImageElement, IMAGE_CREATION_INTERVAL);
             }, INITIAL_IMAGE_SPAWN_DELAY);
         } else {
@@ -175,7 +179,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (iconsConfig.length > 0) {
             setTimeout(() => {
-                createIconElement();
+                if (document.querySelectorAll('.falling-icon-container').length < MAX_ACTIVE_ICONS) {
+                    createIconElement();
+                }
                 setInterval(createIconElement, ICON_CREATION_INTERVAL);
             }, INITIAL_ICON_SPAWN_DELAY);
         } else {
@@ -188,7 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createTextElement() {
-        if (textsContent.length === 0) return;
+        if (textsContent.length === 0 || document.querySelectorAll('.falling-text').length >= MAX_ACTIVE_TEXTS) {
+            return;
+        }
         const textContent = textsContent[Math.floor(Math.random() * textsContent.length)];
         const textElement = document.createElement('div');
         textElement.classList.add('falling-text');
@@ -350,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     opacityFromEdges = Math.max(0, opacityFromEdges);
                     el.style.opacity = opacityFromEdges;
-                    const removeThreshold = elOriginalSize * 2;
+                    const removeThreshold = elOriginalSize * 1.8; // <<<< CÓ THỂ THỬ GIẢM NHẸ NGƯỠNG NÀY
                     if (opacityFromEdges <= 0.01 ||
                         rect.bottom < -removeThreshold || rect.top > viewportH + removeThreshold ||
                         rect.right < -removeThreshold || rect.left > viewportW + removeThreshold) {
