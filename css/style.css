@@ -115,6 +115,7 @@ body, html {
     will-change: transform, opacity; 
     user-select: none; 
     pointer-events: none; 
+    transition: opacity 0.5s ease-in-out;
     background-color: rgba(50, 50, 80, 0.3); 
     object-fit: cover;
     z-index: 2;
