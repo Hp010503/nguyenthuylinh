@@ -1,27 +1,18 @@
-// Hàm tiện ích để xáo trộn mảng
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
+// ... (Đầu file, hàm shuffleArray) ...
 
 document.addEventListener('DOMContentLoaded', () => {
-    const sceneContainer = document.getElementById('scene-container');
-    const textArea = document.getElementById('text-area');
-    let textsContent = [];
+    // ... (Khai báo sceneContainer, textArea, textsContent) ...
 
-    // --- CÁC THAM SỐ CẤU HÌNH (ĐIỀU CHỈNH ĐỂ GIẢM LAG) ---
-    const FADE_DURATION = 500;
-    // TEXT
-    const MAX_ACTIVE_TEXTS = 20; // <<<< GIỚI HẠN SỐ LƯỢNG CHỮ
-    const TEXT_CREATION_INTERVAL = 80; // <<<< TĂNG INTERVAL
+    // --- CÁC THAM SỐ CẤU HÌNH ---
+    // ... (FADE_DURATION, các hằng số TEXT, IMAGE, ICON như cũ) ...
+    const MAX_ACTIVE_TEXTS = 20;
+    const TEXT_CREATION_INTERVAL = 80;
     const INITIAL_TEXT_SPAWN_DELAY = 500;
-    // IMAGE
-    const MAX_ACTIVE_IMAGES = 6; // <<<< GIẢM SỐ LƯỢNG ẢNH
-    const IMAGE_CREATION_INTERVAL = 2200; // <<<< TĂNG INTERVAL
+
+    const MAX_ACTIVE_IMAGES = 6;
+    const IMAGE_CREATION_INTERVAL = 2200;
     const INITIAL_IMAGE_SPAWN_DELAY = 1500;
-    const imageFilenames = [
+    const imageFilenames = [ /* ... danh sách file ảnh ... */
         'assets/images/491217300_1017294157207209_1811657879217783755_n.jpg',
         'assets/images/att.5Dlr-7kJIFIUDUvzTPpGX_lyuUkFm3uHECOa5ME1AN0.jpg',
         'assets/images/att.9cX5K1TmkhLgNT6Ii7FVLQf96BbeUowYFHm1qA0vdR8.jpg',
@@ -38,18 +29,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSpawnIndex = 0;
     const TARGET_APPARENT_IMAGE_WIDTH_DESKTOP = 250;
     const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 175;
-    // ICON
+
     let iconsConfig = [];
-    const MAX_ACTIVE_ICONS = 4; // <<<< GIẢM SỐ LƯỢNG ICON
-    const ICON_CREATION_INTERVAL = 2800;  // <<<< TĂNG INTERVAL
+    const MAX_ACTIVE_ICONS = 4;
+    const ICON_CREATION_INTERVAL = 2800;
     const INITIAL_ICON_SPAWN_DELAY = 2500;
+
     // SCENE
-    const PERSPECTIVE_VALUE_FROM_CSS = 800; // Khớp với CSS
+    const PERSPECTIVE_VALUE_FROM_CSS = 800; // Nên khớp với giá trị 'perspective' trong style.css
     const FIXED_SCENE_Z_DEPTH = -800; 
-    // SPEED
+    const TEXT_Z_DEPTH_RANGE = 400; // <<<< THÊM MỚI: Text sẽ spawn trong Z = -200 đến +200 so với #text-area
+
+    // ... (SPEED, ROTATION & SCALE, FONT, EDGE FADE, Biến trạng thái isMouseDown...) ...
     const MIN_VIEW_SPEED_MULTIPLIER = 1.0;
     const MAX_VIEW_SPEED_MULTIPLIER = 1.0;
-    // ROTATION & SCALE
     let currentRotationX = 5; 
     let currentRotationY = 15; 
     const rotationSensitivityMouse = 0.03;
@@ -60,16 +53,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_SCENE_SCALE = 2.0;
     const ZOOM_SENSITIVITY_MOUSE_WHEEL = 0.03;
     const ZOOM_SENSITIVITY_PINCH = 0.03;
-    // FONT
     const TARGET_APPARENT_FONT_SIZE_DESKTOP = 30;
     const TARGET_APPARENT_FONT_SIZE_MOBILE = 22;
     const MIN_EFFECTIVE_FONT_SIZE = 1;
     const MAX_EFFECTIVE_FONT_SIZE = 100;
-    // EDGE FADE
     const EDGE_FADE_ZONE_RATIO_X = 0;
     const EDGE_FADE_ZONE_RATIO_Y = 0.20;
     let edgeFadeZoneX, edgeFadeZoneY_Bottom;
-
     let isMouseDown = false;
     let lastMouseX = 0, lastMouseY = 0;
     let isTouching = false;
@@ -77,7 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPinching = false;
     let initialPinchDistance = 0;
 
-    function getNextUniqueImageFilename() {
+
+    // ... (getNextUniqueImageFilename, calculateEdgeFadeZones, fetchIconsConfig, Promise.all, initScene) ...
+    // GIỮ NGUYÊN CÁC HÀM NÀY TỪ BẢN TRƯỚC
+
+    function getNextUniqueImageFilename() { /* ... giữ nguyên ... */ 
         if (imageFilenames.length === 0) return null;
         if (availableImageIndicesToSpawn.length === 0 || currentSpawnIndex >= availableImageIndicesToSpawn.length) {
             availableImageIndicesToSpawn = Array.from(Array(imageFilenames.length).keys());
@@ -89,13 +83,11 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSpawnIndex++;
         return imageFilenames[filenameIndex];
     }
-
-    function calculateEdgeFadeZones() {
+    function calculateEdgeFadeZones() { /* ... giữ nguyên ... */ 
         edgeFadeZoneX = window.innerWidth * EDGE_FADE_ZONE_RATIO_X;
         edgeFadeZoneY_Bottom = window.innerHeight * EDGE_FADE_ZONE_RATIO_Y;
     }
-
-    function fetchIconsConfig() {
+    function fetchIconsConfig() { /* ... giữ nguyên ... */ 
         return fetch('icons.ini')
             .then(response => {
                 if (!response.ok) throw new Error('Không thể tải file icons.ini');
@@ -127,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Lỗi khi tải icons.ini:', error);
             });
     }
-
     Promise.all([
         fetch('textindex.ini')
             .then(response => {
@@ -137,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 textsContent = data.split('\n').map(line => line.trim()).filter(line => line.length > 0);
                 if (textsContent.length === 0) {
-                    console.warn("File textindex.ini trống. Sử dụng text mặc định.");
                     textsContent = ["Hiệu ứng Chữ Rơi", "Kết hợp Ảnh & Icon", "Cấu hình từ File .ini"];
                 }
             })
@@ -153,19 +143,17 @@ document.addEventListener('DOMContentLoaded', () => {
         initScene(); 
     });
 
-    function initScene() {
+    function initScene() { /* ... giữ nguyên, nhưng chú ý phần tạo text bên trong ... */ 
         calculateEdgeFadeZones();
         window.addEventListener('resize', calculateEdgeFadeZones);
-
         if (textsContent.length > 0) {
             setTimeout(() => {
                 if (document.querySelectorAll('.falling-text').length < MAX_ACTIVE_TEXTS) {
-                    createTextElement(); // Tạo ngay nếu slot còn trống
+                    createTextElement(); 
                 }
                 setInterval(createTextElement, TEXT_CREATION_INTERVAL);
             }, INITIAL_TEXT_SPAWN_DELAY);
         }
-
         if (imageFilenames.length > 0) {
             setTimeout(() => {
                 if (document.querySelectorAll('.falling-image').length < MAX_ACTIVE_IMAGES) {
@@ -173,10 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 setInterval(createImageElement, IMAGE_CREATION_INTERVAL);
             }, INITIAL_IMAGE_SPAWN_DELAY);
-        } else {
-            console.log("Không có file ảnh cục bộ nào được liệt kê.");
-        }
-
+        } else { console.log("Không có file ảnh cục bộ nào được liệt kê."); }
         if (iconsConfig.length > 0) {
             setTimeout(() => {
                 if (document.querySelectorAll('.falling-icon-container').length < MAX_ACTIVE_ICONS) {
@@ -184,16 +169,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 setInterval(createIconElement, ICON_CREATION_INTERVAL);
             }, INITIAL_ICON_SPAWN_DELAY);
-        } else {
-            console.log("Không có cấu hình icon nào được tải. Icon sẽ không được tạo.");
-        }
-
+        } else { console.log("Không có cấu hình icon nào được tải. Icon sẽ không được tạo.");}
         requestAnimationFrame(animationLoop);
         sceneContainer.style.cursor = 'grab';
         updateTextAreaTransform();
     }
 
-    function createTextElement() {
+
+    function createTextElement() { // <<<< CẬP NHẬT
         if (textsContent.length === 0 || document.querySelectorAll('.falling-text').length >= MAX_ACTIVE_TEXTS) {
             return;
         }
@@ -201,20 +184,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const textElement = document.createElement('div');
         textElement.classList.add('falling-text');
         textElement.textContent = textContent;
-        textElement.style.transform = `translateZ(0px) translateX(0px) translateY(0px)`;
+
+        const randomLocalZ = (Math.random() - 0.5) * TEXT_Z_DEPTH_RANGE;
+        textElement.dataset.localZ = randomLocalZ;
+
+        textElement.style.transform = `translateZ(${randomLocalZ}px) translateX(0px) translateY(0px)`;
         textElement.dataset.currentTranslateX = 0;
         textElement.dataset.currentTranslateY = 0;
+        
         const targetBaseFontSize = window.innerWidth > 768 ? TARGET_APPARENT_FONT_SIZE_DESKTOP : TARGET_APPARENT_FONT_SIZE_MOBILE;
         const safeScale = Math.max(0.01, currentSceneScale);
         let calculatedFontSize = targetBaseFontSize / safeScale;
         calculatedFontSize = Math.max(MIN_EFFECTIVE_FONT_SIZE, Math.min(MAX_EFFECTIVE_FONT_SIZE, calculatedFontSize));
         textElement.style.fontSize = `${calculatedFontSize}px`;
+        
         const baseSpeedRandomFactor = Math.random() * 500 + 375;
         textElement.dataset.baseSpeed = baseSpeedRandomFactor;
+        
         const randomInitialYPercent = -(Math.random() * 400 + 20);
         textElement.style.top = `${randomInitialYPercent}%`;
         const randomInitialXPercent = (Math.random() * 1000) - 500;
         textElement.style.left = `${randomInitialXPercent}%`;
+        
         textElement.style.transition = 'opacity 0.5s ease-in-out';
         textArea.appendChild(textElement);
         setTimeout(() => {
@@ -223,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 50);
     }
 
-    function createImageElement() {
+    function createImageElement() { /* ... giữ nguyên ... */ 
         if (imageFilenames.length === 0 || document.querySelectorAll('.falling-image').length >= MAX_ACTIVE_IMAGES) {
             return;
         }
@@ -258,13 +249,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         imageElement.onerror = () => {
             console.warn(`Không tải được ảnh cục bộ: ${imagePath}.`);
-            if (imageElement.parentNode) {
-                imageElement.parentNode.removeChild(imageElement);
-            }
+            if (imageElement.parentNode) { imageElement.parentNode.removeChild(imageElement); }
         };
     }
-
-    function createIconElement() {
+    function createIconElement() { /* ... giữ nguyên ... */ 
         if (iconsConfig.length === 0 || document.querySelectorAll('.falling-icon-container').length >= MAX_ACTIVE_ICONS) {
             return;
         }
@@ -301,8 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 50);
     }
 
+
     let lastFrameTime = 0;
-    function animationLoop(currentTime) {
+    function animationLoop(currentTime) { // <<<< CẬP NHẬT animateFallingElement
         if (!lastFrameTime) {
             lastFrameTime = currentTime;
             requestAnimationFrame(animationLoop);
@@ -324,6 +313,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const baseSpeed = parseFloat(el.dataset.baseSpeed);
                 let currentTX = parseFloat(el.dataset.currentTranslateX || 0);
                 let currentTY = parseFloat(el.dataset.currentTranslateY || 0);
+                
+                let localZ = 0; // Mặc định cho image, icon
+                if (elementType === 'text' && el.dataset.localZ) { // Chỉ text mới có localZ riêng
+                    localZ = parseFloat(el.dataset.localZ);
+                }
+
                 let elOriginalSize;
                 if (elementType === 'text' || elementType === 'icon') {
                     elOriginalSize = el.offsetHeight || (parseFloat(el.style.fontSize) || 20);
@@ -338,7 +333,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentTY += screenDownLocalY * displacement;
                 el.dataset.currentTranslateX = currentTX;
                 el.dataset.currentTranslateY = currentTY;
-                el.style.transform = `translateZ(0px) translateX(${currentTX}px) translateY(${currentTY}px)`;
+                
+                el.style.transform = `translateZ(${localZ}px) translateX(${currentTX}px) translateY(${currentTY}px)`; // << Áp dụng localZ
+                
                 const rect = el.getBoundingClientRect();
                 const elW = rect.width;
                 const elH = rect.height;
@@ -358,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     opacityFromEdges = Math.max(0, opacityFromEdges);
                     el.style.opacity = opacityFromEdges;
-                    const removeThreshold = elOriginalSize * 1.8; // <<<< CÓ THỂ THỬ GIẢM NHẸ NGƯỠNG NÀY
+                    const removeThreshold = elOriginalSize * 1.8;
                     if (opacityFromEdges <= 0.01 ||
                         rect.bottom < -removeThreshold || rect.top > viewportH + removeThreshold ||
                         rect.right < -removeThreshold || rect.left > viewportW + removeThreshold) {
@@ -373,14 +370,14 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(animationLoop);
     }
 
-    function updateTextAreaTransform() {
+    // ... (updateTextAreaTransform và Event Listeners giữ nguyên) ...
+    function updateTextAreaTransform() { /* ... giữ nguyên ... */ 
         const translateZValue = FIXED_SCENE_Z_DEPTH;
         currentSceneScale = Math.max(MIN_SCENE_SCALE, Math.min(MAX_SCENE_SCALE, currentSceneScale));
         currentRotationX = Math.max(-maxAngle, Math.min(maxAngle, currentRotationX));
         currentRotationY = Math.max(-maxAngle, Math.min(35, currentRotationY));
         textArea.style.transform = `translateZ(${translateZValue}px) scale(${currentSceneScale}) rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
     }
-
     sceneContainer.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isMouseDown = true; isPinching = false; isTouching = false; lastMouseX = e.clientX; lastMouseY = e.clientY; sceneContainer.style.cursor = 'grabbing'; });
     document.addEventListener('mousemove', (e) => { if (!isMouseDown) return; const deltaX = e.clientX - lastMouseX; const deltaY = e.clientY - lastMouseY; currentRotationY += deltaX * rotationSensitivityMouse; currentRotationX -= deltaY * rotationSensitivityMouse; updateTextAreaTransform(); lastMouseX = e.clientX; lastMouseY = e.clientY; });
     document.addEventListener('mouseup', () => { if (isMouseDown) { isMouseDown = false; sceneContainer.style.cursor = 'grab'; } });
