@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSceneScale = MIN_SCENE_SCALE; 
     const MAX_SCENE_SCALE = 2.0;
     const ZOOM_SENSITIVITY_MOUSE_WHEEL = 0.03;
-    const ZOOM_SENSITIVITY_PINCH = 0.03;
+    const ZOOM_SENSITIVITY_PINCH = 0.01;
     // FONT
     const TARGET_APPARENT_FONT_SIZE_DESKTOP = 30;
     const TARGET_APPARENT_FONT_SIZE_MOBILE = 22;
