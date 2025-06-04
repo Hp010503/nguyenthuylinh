@@ -1,18 +1,27 @@
-// ... (Đầu file, hàm shuffleArray) ...
+// Hàm tiện ích để xáo trộn mảng
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ... (Khai báo sceneContainer, textArea, textsContent) ...
+    const sceneContainer = document.getElementById('scene-container');
+    const textArea = document.getElementById('text-area');
+    let textsContent = [];
 
     // --- CÁC THAM SỐ CẤU HÌNH ---
-    // ... (FADE_DURATION, các hằng số TEXT, IMAGE, ICON như cũ) ...
-    const MAX_ACTIVE_TEXTS = 20;
-    const TEXT_CREATION_INTERVAL = 80;
+    const FADE_DURATION = 500;
+    // TEXT
+    const MAX_ACTIVE_TEXTS = 20; 
+    const TEXT_CREATION_INTERVAL = 80; 
     const INITIAL_TEXT_SPAWN_DELAY = 500;
-
-    const MAX_ACTIVE_IMAGES = 6;
-    const IMAGE_CREATION_INTERVAL = 2200;
+    // IMAGE
+    const MAX_ACTIVE_IMAGES = 6; 
+    const IMAGE_CREATION_INTERVAL = 2200; 
     const INITIAL_IMAGE_SPAWN_DELAY = 1500;
-    const imageFilenames = [ /* ... danh sách file ảnh ... */
+    const imageFilenames = [
         'assets/images/491217300_1017294157207209_1811657879217783755_n.jpg',
         'assets/images/att.5Dlr-7kJIFIUDUvzTPpGX_lyuUkFm3uHECOa5ME1AN0.jpg',
         'assets/images/att.9cX5K1TmkhLgNT6Ii7FVLQf96BbeUowYFHm1qA0vdR8.jpg',
@@ -29,20 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSpawnIndex = 0;
     const TARGET_APPARENT_IMAGE_WIDTH_DESKTOP = 250;
     const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 175;
-
+    // ICON
     let iconsConfig = [];
-    const MAX_ACTIVE_ICONS = 4;
-    const ICON_CREATION_INTERVAL = 2800;
+    const MAX_ACTIVE_ICONS = 4; 
+    const ICON_CREATION_INTERVAL = 2800;  
     const INITIAL_ICON_SPAWN_DELAY = 2500;
-
-    // SCENE
-    const PERSPECTIVE_VALUE_FROM_CSS = 800; // Nên khớp với giá trị 'perspective' trong style.css
-    const FIXED_SCENE_Z_DEPTH = -800; 
-    const TEXT_Z_DEPTH_RANGE = 400; // <<<< THÊM MỚI: Text sẽ spawn trong Z = -200 đến +200 so với #text-area
-
-    // ... (SPEED, ROTATION & SCALE, FONT, EDGE FADE, Biến trạng thái isMouseDown...) ...
+    // SCENE & DEPTH EFFECTS
+    const PERSPECTIVE_VALUE_FROM_CSS = 1000; // <<<< CẬP NHẬT: Khớp với CSS của bạn
+    const FIXED_SCENE_Z_DEPTH = -1200;      // <<<< CẬP NHẬT: Đẩy scene ra xa hơn
+    const TEXT_Z_DEPTH_RANGE = 800;         // <<<< CẬP NHẬT: Tăng phạm vi Z cho text (sẽ là -400 đến +400 so với #text-area)
+    const Z_SPEED_EFFECT_STRENGTH = 0.3;    // <<<< MỚI: 0=ko ảnh hưởng, 0.3=chênh lệch tốc độ 30% ở biên Z
+    const Z_OPACITY_EFFECT_STRENGTH = 0.5;  // <<<< MỚI: 0=ko ảnh hưởng, 0.5=mờ 50% ở Z xa nhất
+    // SPEED
     const MIN_VIEW_SPEED_MULTIPLIER = 1.0;
     const MAX_VIEW_SPEED_MULTIPLIER = 1.0;
+    // ROTATION & SCALE
     let currentRotationX = 5; 
     let currentRotationY = 15; 
     const rotationSensitivityMouse = 0.03;
@@ -53,13 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_SCENE_SCALE = 2.0;
     const ZOOM_SENSITIVITY_MOUSE_WHEEL = 0.03;
     const ZOOM_SENSITIVITY_PINCH = 0.03;
+    // FONT
     const TARGET_APPARENT_FONT_SIZE_DESKTOP = 30;
     const TARGET_APPARENT_FONT_SIZE_MOBILE = 22;
     const MIN_EFFECTIVE_FONT_SIZE = 1;
     const MAX_EFFECTIVE_FONT_SIZE = 100;
+    // EDGE FADE
     const EDGE_FADE_ZONE_RATIO_X = 0;
     const EDGE_FADE_ZONE_RATIO_Y = 0.20;
     let edgeFadeZoneX, edgeFadeZoneY_Bottom;
+
     let isMouseDown = false;
     let lastMouseX = 0, lastMouseY = 0;
     let isTouching = false;
@@ -67,11 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPinching = false;
     let initialPinchDistance = 0;
 
-
-    // ... (getNextUniqueImageFilename, calculateEdgeFadeZones, fetchIconsConfig, Promise.all, initScene) ...
-    // GIỮ NGUYÊN CÁC HÀM NÀY TỪ BẢN TRƯỚC
-
-    function getNextUniqueImageFilename() { /* ... giữ nguyên ... */ 
+    function getNextUniqueImageFilename() {
         if (imageFilenames.length === 0) return null;
         if (availableImageIndicesToSpawn.length === 0 || currentSpawnIndex >= availableImageIndicesToSpawn.length) {
             availableImageIndicesToSpawn = Array.from(Array(imageFilenames.length).keys());
@@ -83,11 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSpawnIndex++;
         return imageFilenames[filenameIndex];
     }
-    function calculateEdgeFadeZones() { /* ... giữ nguyên ... */ 
+
+    function calculateEdgeFadeZones() {
         edgeFadeZoneX = window.innerWidth * EDGE_FADE_ZONE_RATIO_X;
         edgeFadeZoneY_Bottom = window.innerHeight * EDGE_FADE_ZONE_RATIO_Y;
     }
-    function fetchIconsConfig() { /* ... giữ nguyên ... */ 
+
+    function fetchIconsConfig() {
         return fetch('icons.ini')
             .then(response => {
                 if (!response.ok) throw new Error('Không thể tải file icons.ini');
@@ -119,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Lỗi khi tải icons.ini:', error);
             });
     }
+
     Promise.all([
         fetch('textindex.ini')
             .then(response => {
@@ -143,9 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
         initScene(); 
     });
 
-    function initScene() { /* ... giữ nguyên, nhưng chú ý phần tạo text bên trong ... */ 
+    function initScene() {
         calculateEdgeFadeZones();
         window.addEventListener('resize', calculateEdgeFadeZones);
+
         if (textsContent.length > 0) {
             setTimeout(() => {
                 if (document.querySelectorAll('.falling-text').length < MAX_ACTIVE_TEXTS) {
@@ -154,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setInterval(createTextElement, TEXT_CREATION_INTERVAL);
             }, INITIAL_TEXT_SPAWN_DELAY);
         }
+
         if (imageFilenames.length > 0) {
             setTimeout(() => {
                 if (document.querySelectorAll('.falling-image').length < MAX_ACTIVE_IMAGES) {
@@ -161,7 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 setInterval(createImageElement, IMAGE_CREATION_INTERVAL);
             }, INITIAL_IMAGE_SPAWN_DELAY);
-        } else { console.log("Không có file ảnh cục bộ nào được liệt kê."); }
+        } else {
+            console.log("Không có file ảnh cục bộ nào được liệt kê.");
+        }
+
         if (iconsConfig.length > 0) {
             setTimeout(() => {
                 if (document.querySelectorAll('.falling-icon-container').length < MAX_ACTIVE_ICONS) {
@@ -169,14 +186,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 setInterval(createIconElement, ICON_CREATION_INTERVAL);
             }, INITIAL_ICON_SPAWN_DELAY);
-        } else { console.log("Không có cấu hình icon nào được tải. Icon sẽ không được tạo.");}
+        } else {
+            console.log("Không có cấu hình icon nào được tải. Icon sẽ không được tạo.");
+        }
+
         requestAnimationFrame(animationLoop);
         sceneContainer.style.cursor = 'grab';
         updateTextAreaTransform();
     }
 
-
-    function createTextElement() { // <<<< CẬP NHẬT
+    function createTextElement() {
         if (textsContent.length === 0 || document.querySelectorAll('.falling-text').length >= MAX_ACTIVE_TEXTS) {
             return;
         }
@@ -185,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         textElement.classList.add('falling-text');
         textElement.textContent = textContent;
 
-        const randomLocalZ = (Math.random() - 0.5) * TEXT_Z_DEPTH_RANGE;
+        const randomLocalZ = (Math.random() - 0.5) * TEXT_Z_DEPTH_RANGE; // Từ -RANGE/2 đến +RANGE/2
         textElement.dataset.localZ = randomLocalZ;
 
         textElement.style.transform = `translateZ(${randomLocalZ}px) translateX(0px) translateY(0px)`;
@@ -206,15 +225,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const randomInitialXPercent = (Math.random() * 1000) - 500;
         textElement.style.left = `${randomInitialXPercent}%`;
         
-        textElement.style.transition = 'opacity 0.5s ease-in-out';
+        textElement.style.transition = 'opacity 0.5s ease-in-out'; // Chỉ cho fade-in ban đầu
         textArea.appendChild(textElement);
         setTimeout(() => {
-            textElement.style.opacity = 1;
+            // Opacity ban đầu sẽ được tính toán trong animationLoop dựa trên localZ
+            // textElement.style.opacity = 1; // Bỏ dòng này
             setTimeout(() => { textElement.style.transition = ''; }, FADE_DURATION);
-        }, 50);
+        }, 50); // Delay nhỏ để CSS render và JS có thể tính toán opacity
     }
 
-    function createImageElement() { /* ... giữ nguyên ... */ 
+    function createImageElement() { // Ảnh và Icon giữ nguyên, không có localZ riêng
         if (imageFilenames.length === 0 || document.querySelectorAll('.falling-image').length >= MAX_ACTIVE_IMAGES) {
             return;
         }
@@ -252,7 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (imageElement.parentNode) { imageElement.parentNode.removeChild(imageElement); }
         };
     }
-    function createIconElement() { /* ... giữ nguyên ... */ 
+
+    function createIconElement() { // Giữ nguyên, không có localZ riêng
         if (iconsConfig.length === 0 || document.querySelectorAll('.falling-icon-container').length >= MAX_ACTIVE_ICONS) {
             return;
         }
@@ -289,9 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 50);
     }
 
-
     let lastFrameTime = 0;
-    function animationLoop(currentTime) { // <<<< CẬP NHẬT animateFallingElement
+    function animationLoop(currentTime) {
         if (!lastFrameTime) {
             lastFrameTime = currentTime;
             requestAnimationFrame(animationLoop);
@@ -314,9 +334,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 let currentTX = parseFloat(el.dataset.currentTranslateX || 0);
                 let currentTY = parseFloat(el.dataset.currentTranslateY || 0);
                 
-                let localZ = 0; // Mặc định cho image, icon
-                if (elementType === 'text' && el.dataset.localZ) { // Chỉ text mới có localZ riêng
+                let localZ = 0; 
+                let finalSpeed = baseSpeed;
+                let opacityFromZ = 1.0;
+
+                if (elementType === 'text' && el.dataset.localZ) {
                     localZ = parseFloat(el.dataset.localZ);
+                    const halfZRange = TEXT_Z_DEPTH_RANGE / 2;
+                    if (halfZRange > 0) { // Tránh chia cho 0
+                        const normZ = localZ / halfZRange; // Từ -1 (xa nhất) đến +1 (gần nhất)
+                        
+                        // Parallax Speed: Xa hơn -> chậm hơn, Gần hơn -> nhanh hơn
+                        finalSpeed = baseSpeed * (1 + normZ * Z_SPEED_EFFECT_STRENGTH);
+                        finalSpeed = Math.max(baseSpeed * 0.1, finalSpeed); // Giới hạn tốc độ tối thiểu
+
+                        // Opacity based on Z (Fog/Haze): Xa hơn -> mờ hơn
+                        // -normZ: từ +1 (xa nhất) đến -1 (gần nhất)
+                        // Math.max(0, -normZ): sẽ là 1 cho vật xa nhất, 0 cho vật từ Z=0 đến gần nhất
+                        opacityFromZ = 1 - (Math.max(0, -normZ) * Z_OPACITY_EFFECT_STRENGTH);
+                        opacityFromZ = Math.max(0.1, opacityFromZ); // Giới hạn opacity tối thiểu do Z
+                    }
                 }
 
                 let elOriginalSize;
@@ -327,20 +364,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     elOriginalSize = 20;
                 }
-                const finalSpeed = baseSpeed;
+                
                 const displacement = finalSpeed * deltaTime;
                 currentTX += screenDownLocalX * displacement;
                 currentTY += screenDownLocalY * displacement;
                 el.dataset.currentTranslateX = currentTX;
                 el.dataset.currentTranslateY = currentTY;
-                
-                el.style.transform = `translateZ(${localZ}px) translateX(${currentTX}px) translateY(${currentTY}px)`; // << Áp dụng localZ
+                el.style.transform = `translateZ(${localZ}px) translateX(${currentTX}px) translateY(${currentTY}px)`;
                 
                 const rect = el.getBoundingClientRect();
                 const elW = rect.width;
                 const elH = rect.height;
+
+                // Chỉ đặt opacity ban đầu cho text nếu nó là 'initialRenderAttempted'
+                // Các element khác đã có opacity 1 từ setTimeout trong hàm tạo
+                if (elementType === 'text' && el.style.opacity === "0") { // Chỉ cho lần đầu text xuất hiện
+                     // Opacity được kết hợp ngay
+                }
+
+
                 if (elW === 0 && elH === 0 && el.dataset.initialRenderAttempted !== "true") {
                     el.dataset.initialRenderAttempted = "true";
+                    // (Logic xóa nếu quá xa ban đầu - giữ nguyên)
                     const estVisualTopPercent = parseFloat(el.style.top);
                     const estVisualTopPx = (estVisualTopPercent / 100 * textArea.offsetHeight) + currentTY;
                     if (estVisualTopPx < -viewportH * 3 || estVisualTopPx > viewportH * 4) {
@@ -354,9 +399,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         opacityFromEdges = Math.min(opacityFromEdges, 1 - progressBottom);
                     }
                     opacityFromEdges = Math.max(0, opacityFromEdges);
-                    el.style.opacity = opacityFromEdges;
+                    
+                    // Kết hợp opacity từ Z và opacity từ các cạnh
+                    el.style.opacity = Math.min(opacityFromEdges, opacityFromZ).toFixed(2);
+
                     const removeThreshold = elOriginalSize * 1.8;
-                    if (opacityFromEdges <= 0.01 ||
+                    if (parseFloat(el.style.opacity) <= 0.01 ||
                         rect.bottom < -removeThreshold || rect.top > viewportH + removeThreshold ||
                         rect.right < -removeThreshold || rect.left > viewportW + removeThreshold) {
                         if (el.parentNode) textArea.removeChild(el);
@@ -370,14 +418,15 @@ document.addEventListener('DOMContentLoaded', () => {
         requestAnimationFrame(animationLoop);
     }
 
-    // ... (updateTextAreaTransform và Event Listeners giữ nguyên) ...
-    function updateTextAreaTransform() { /* ... giữ nguyên ... */ 
+    function updateTextAreaTransform() {
         const translateZValue = FIXED_SCENE_Z_DEPTH;
         currentSceneScale = Math.max(MIN_SCENE_SCALE, Math.min(MAX_SCENE_SCALE, currentSceneScale));
         currentRotationX = Math.max(-maxAngle, Math.min(maxAngle, currentRotationX));
         currentRotationY = Math.max(-maxAngle, Math.min(35, currentRotationY));
         textArea.style.transform = `translateZ(${translateZValue}px) scale(${currentSceneScale}) rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
     }
+
+    // --- Event Listeners (Không thay đổi) ---
     sceneContainer.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isMouseDown = true; isPinching = false; isTouching = false; lastMouseX = e.clientX; lastMouseY = e.clientY; sceneContainer.style.cursor = 'grabbing'; });
     document.addEventListener('mousemove', (e) => { if (!isMouseDown) return; const deltaX = e.clientX - lastMouseX; const deltaY = e.clientY - lastMouseY; currentRotationY += deltaX * rotationSensitivityMouse; currentRotationX -= deltaY * rotationSensitivityMouse; updateTextAreaTransform(); lastMouseX = e.clientX; lastMouseY = e.clientY; });
     document.addEventListener('mouseup', () => { if (isMouseDown) { isMouseDown = false; sceneContainer.style.cursor = 'grab'; } });
