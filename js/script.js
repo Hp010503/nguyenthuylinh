@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const TARGET_APPARENT_FONT_SIZE_DESKTOP = 30;
     const TARGET_APPARENT_FONT_SIZE_MOBILE = 22;
     const MIN_EFFECTIVE_FONT_SIZE = 1;
-    const MAX_EFFECTIVE_FONT_SIZE = 500;
+    const MAX_EFFECTIVE_FONT_SIZE = 1000;
     
     const EDGE_FADE_ZONE_RATIO_X = 0;
     const EDGE_FADE_ZONE_RATIO_Y = 0; 
