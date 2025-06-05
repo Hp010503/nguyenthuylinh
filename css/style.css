@@ -1,42 +1,56 @@
 body, html {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background-color: #000;
-    touch-action: none; 
+    margin: 0; /* Xóa margin mặc định */
+    padding: 0; /* Xóa padding mặc định */
+    width: 100%; /* Chiếm toàn bộ chiều rộng */
+    height: 100%; /* Chiếm toàn bộ chiều cao */
+    overflow: hidden; /* Ngăn thanh cuộn xuất hiện khi các phần tử rơi ra ngoài */
+    background-color: #000; /* Màu nền đen cho không gian */
+    touch-action: none;  /* Ngăn các hành vi chạm mặc định (ví dụ: pinch-to-zoom của trang) để ưu tiên cho việc điều khiển scene */
 }
 
 /* --- STARFIELD CSS (NỀN TĨNH) --- */
-/* box-shadow sẽ được tải từ starfield.ini và áp dụng bằng JavaScript */
-#scene-container::before, #scene-container::after {
-    content: "";
-    position: absolute;
+/* 
+   Các pseudo-elements ::before và ::after của #scene-container được dùng để tạo
+   các lớp sao tĩnh làm nền. Chúng sử dụng nhiều box-shadow để vẽ các chấm sao.
+   Giá trị box-shadow thực tế sẽ được tải từ file starfield.ini bằng JavaScript.
+*/
+#scene-container::before, 
+#scene-container::after {
+    content: ""; /* Bắt buộc phải có để pseudo-elements được render */
+    position: absolute; /* Định vị tuyệt đối so với #scene-container */
     top: 0; 
     left: 0; 
-    right: 0;
-    bottom: 0;
-    background: transparent; 
-    z-index: -2; /* Đảm bảo nằm sau tất cả các phần tử khác, kể cả dynamic-star */
+    right: 0;  /* Cho phép animation di chuyển trên toàn bộ phạm vi */
+    bottom: 0; 
+    background: transparent; /* Nền trong suốt, chỉ có box-shadow là các ngôi sao */
+    z-index: -2; /* Đặt sâu phía sau để không che các phần tử rơi hoặc sao động */
 }
 
+/* Lớp sao nhỏ nhất, di chuyển chậm nhất (cảm giác ở xa nhất) */
 #scene-container::before {
-    width: 1px;
+    width: 1px; /* Kích thước các chấm sao của lớp này */
     height: 1px;
-    /* box-shadow is set by JavaScript from starfield.ini */
-    /* QUAN TRỌNG: Bạn phải tự điền giá trị box-shadow vào file starfield.ini */
-    animation: animStar 200s linear infinite, twinkleStarSmall 5s ease-in-out infinite alternate; 
+    /* Thuộc tính box-shadow sẽ được điền bởi JavaScript từ file starfield.ini */
+    /* Đây là nơi bạn sẽ dán hàng trăm (ví dụ: 500+) tọa độ "offsetX offsetY color" */
+    animation: animStar 200s linear infinite, /* Animation di chuyển chậm */
+               twinkleStarSmall 5s ease-in-out infinite alternate; /* Animation nhấp nháy nhẹ */
 }
 
+/* Lớp sao kích thước trung bình, di chuyển nhanh hơn một chút */
 #scene-container::after {
-    width: 2px;
+    width: 2px; /* Kích thước các chấm sao lớn hơn */
     height: 2px;
-    /* box-shadow is set by JavaScript from starfield.ini */
-    animation: animStar 150s linear infinite, twinkleStarMedium 7s ease-in-out infinite alternate; 
+    /* box-shadow sẽ được điền bởi JavaScript từ file starfield.ini */
+    /* Đây là nơi bạn sẽ dán vài chục đến hàng trăm tọa độ */
+    animation: animStar 150s linear infinite, /* Animation di chuyển nhanh hơn lớp ::before */
+               twinkleStarMedium 7s ease-in-out infinite alternate; /* Nhấp nháy rõ hơn */
 }
 
-/* Bỏ comment khối này nếu bạn sử dụng và cấu hình #starfield-overlay trong starfield.ini */
+/* 
+   Khối này dành cho một lớp sao tùy chọn thứ ba (ví dụ: sao lớn hơn, ít hơn).
+   Nếu sử dụng, bạn cần bỏ comment trong HTML (thêm <div id="starfield-overlay"></div>)
+   và cấu hình #starfield-overlay trong file starfield.ini.
+*/
 /*
 #starfield-overlay { 
   content: "";
@@ -47,106 +61,119 @@ body, html {
   background: transparent;
   /* box-shadow is set by JavaScript from starfield.ini */
   /* animation: animStar 100s linear infinite, twinkleStarLarge 3s ease-in-out infinite alternate; */
-  /* z-index: -1; 
-} 
+  /* z-index: -1; /* Đặt sau các sao động, nhưng trên ::before/::after nếu muốn tách biệt hơn */
+/* } 
 */
 
+/* Keyframes cho animation di chuyển của các lớp sao tĩnh */
 @keyframes animStar {
-  from {transform: translateY(0px);}
-  to   {transform: translateY(-2000px);} 
+  from {transform: translateY(0px);} /* Bắt đầu từ vị trí Y=0 */
+  to   {transform: translateY(-2000px);} /* Di chuyển các lớp sao lên trên 1 khoảng lớn, tạo ảo giác không gian */
 }
+/* Keyframes cho hiệu ứng nhấp nháy của các sao tĩnh */
 @keyframes twinkleStarSmall { 
   0%   { opacity: 0.5; }
   50%  { opacity: 1; }
   100% { opacity: 0.5; }
 }
 @keyframes twinkleStarMedium { 
-  0%   { opacity: 0.3; transform: scale(0.8); }
-  50%  { opacity: 1; transform: scale(1.2); }
-  100% { opacity: 0.3; transform: scale(0.8); }
+  0%   { opacity: 0.3; transform: scale(1); } /* Kết hợp opacity và scale */
+  50%  { opacity: 1; transform: scale(5); }
+  100% { opacity: 0.3; transform: scale(1); }
 }
-@keyframes twinkleStarLarge { 
+@keyframes twinkleStarLarge { /* Sao lớn có thể nhấp nháy với thay đổi màu nhẹ */
   0%   { opacity: 0.7; filter: brightness(0.8) hue-rotate(0deg); }
-  50%  { opacity: 1;   filter: brightness(1.2) hue-rotate(20deg); }
+  50%  { opacity: 1;   filter: brightness(3) hue-rotate(20deg); }
   100% { opacity: 0.7; filter: brightness(0.8) hue-rotate(0deg); }
 }
 /* ---------------------------- */
 
 
+/* Container chính của toàn bộ hiệu ứng 3D */
 #scene-container {
-    width: 100vw;
-    height: 100vh;
-    perspective: 1000px; 
-    overflow: hidden;
-    transform-style: preserve-3d;
-    position: relative; 
+    width: 100vw; /* Chiếm toàn bộ chiều rộng viewport */
+    height: 100vh; /* Chiếm toàn bộ chiều cao viewport */
+    perspective: 1000px; /* Giá trị perspective, xác định độ sâu của hiệu ứng 3D. Nên khớp với JS */
+    overflow: hidden;    /* Ẩn các phần tử rơi ra ngoài phạm vi màn hình */
+    transform-style: preserve-3d; /* Cho phép các phần tử con của nó được định vị trong không gian 3D */
+    position: relative; /* Để các pseudo-element và phần tử con absolute định vị theo nó */
 }
 
+/* Mặt phẳng 3D chính nơi các text, image, icon được thêm vào. Mặt phẳng này sẽ được xoay/scale. */
 #text-area {
-    position: relative;
+    position: relative; /* Để các z-index con hoạt động và làm gốc cho transform */
     width: 100%;
     height: 100%;
-    transform-style: preserve-3d; 
-    transform-origin: 50% 50% 0; 
+    transform-style: preserve-3d; /* Quan trọng: cho phép các chữ/ảnh có Z-depth riêng */
+    transform-origin: 50% 50% 0;  /* Điểm gốc (tâm) cho các phép transform (xoay, scale) của #text-area */
 }
 
+/* Style cho các phần tử chữ rơi */
 .falling-text {
-    position: absolute;
-    font-family: 'Dancing Script', cursive;
-    color: #BCE1ED;
-    text-shadow:
+    position: absolute; /* Định vị tuyệt đối bên trong #text-area */
+    font-family: 'Dancing Script', cursive; /* Font chữ được chọn */
+    color: #BCE1ED; /* Màu chữ cơ bản */
+    text-shadow: /* Hiệu ứng bóng đổ tạo cảm giác phát sáng (glow) */
         0 0 5px #BCE1ED, 0 0 10px #BCE1ED, 0 0 15px #BCE1ED,
         0 0 20px #00A3EF, 0 0 30px #00A3EF, 0 0 40px #00A3EF;
-    white-space: nowrap;
-    opacity: 0;
-    /* transition cho opacity sẽ được xử lý trong JS nếu cần cho hiệu ứng Z */
-    will-change: transform, opacity;
-    user-select: none;
-    pointer-events: none;
-    z-index: 1;
+    white-space: nowrap; /* Giữ chữ trên một dòng */
+    opacity: 0; /* Bắt đầu ẩn, JS sẽ làm hiện dần hoặc đặt opacity dựa trên Z-depth */
+    /* Transition ban đầu cho opacity có thể bị ghi đè bởi JS nếu Z-opacity được áp dụng ngay */
+    /* transition: opacity 0.5s ease-in-out; */
+    will-change: transform, opacity; /* Gợi ý cho trình duyệt tối ưu hóa animation */
+    user-select: none; /* Không cho phép người dùng chọn text */
+    pointer-events: none; /* Text không cản trở sự kiện chuột/chạm lên sceneContainer */
+    z-index: 1; /* Lớp hiển thị của text (thấp hơn ảnh và icon) */
 }
 
+/* Style cho các phần tử ảnh rơi */
 .falling-image {
     position: absolute;
-    opacity: 0; 
-    box-shadow: 
+    opacity: 0; /* Bắt đầu ẩn */
+    box-shadow: /* Hiệu ứng glow nhẹ xung quanh ảnh */
         0 0 3px 1px #BCE1ED, 
         0 0 5px 1px rgba(0, 163, 239, 0.5); 
     will-change: transform, opacity; 
     user-select: none; 
     pointer-events: none; 
-    transition: opacity 0.5s ease-in-out;
-    background-color: rgba(50, 50, 80, 0.3); 
-    object-fit: cover;
-    z-index: 2;
-    /* border-width, border-radius, border-color, border-style được set bởi JS */
+    background-color: rgba(50, 50, 80, 0.3); /* Màu nền tạm thời khi ảnh đang tải */
+    object-fit: cover; /* Ảnh sẽ lấp đầy vùng, giữ tỷ lệ và cắt nếu cần */
+    z-index: 2; /* Lớp hiển thị cao hơn text, thấp hơn icon */
+    /* border-width, border-radius, border-color, border-style sẽ được JavaScript đặt động */
 }
 
+/* Style cho container chứa icon và text label của nó */
 .falling-icon-container {
     position: absolute;
-    display: flex; 
-    align-items: center; 
-    opacity: 0;
-    transition: opacity 0.5s ease-in-out;
+    display: flex;       /* Sắp xếp icon và text label nằm ngang */
+    align-items: center; /* Căn giữa theo chiều dọc */
+    opacity: 0; /* Bắt đầu ẩn, JS sẽ làm hiện */
+    transition: opacity 0.5s ease-in-out; /* Hiệu ứng fade-in khi icon được tạo */
     will-change: transform, opacity;
     user-select: none;
     pointer-events: none;
-    z-index: 1;  
-    text-shadow: 
+    z-index: 3;  /* Lớp hiển thị cao nhất */
+    text-shadow: /* Bóng đổ nhẹ cho text label của icon */
         0 0 2px #FFFFFF, 
         0 0 5px rgba(0,0,0,0.3); 
 }
 
-.falling-icon-container i { margin-right: 5px; }
-.falling-icon-container span { white-space: nowrap; font-family: Arial, sans-serif; }
+.falling-icon-container i { /* Style cho thẻ <i> chứa icon Font Awesome */
+    margin-right: 5px; /* Khoảng cách giữa icon và text label */
+}
 
-/* CSS CHO SAO ĐỘNG ĐẶC BIỆT */
+.falling-icon-container span { /* Style cho text label đi kèm icon */
+    white-space: nowrap; /* Giữ label trên một dòng */
+    font-family: Arial, sans-serif; /* Font chữ khác cho label nếu muốn */
+}
+
+/* CSS CHO CÁC NGÔI SAO ĐỘNG ĐẶC BIỆT */
 .dynamic-star {
     position: absolute;
-    background-color: white; /* Màu cơ bản, JS có thể thay đổi */
-    border-radius: 50%;   
-    opacity: 0;            
-    will-change: transform, opacity;
-    pointer-events: none;  
-    z-index: 0; 
+    background-color: white; /* Màu cơ bản, JS có thể thay đổi màu hoặc dùng ảnh nhỏ */
+    border-radius: 50%;   /* Làm cho nó tròn */
+    opacity: 0;            /* Bắt đầu ẩn, JS sẽ quản lý opacity cho nhấp nháy */
+    will-change: transform, opacity; /* Gợi ý tối ưu hóa */
+    pointer-events: none;  /* Không cản trở sự kiện chuột */
+    z-index: 0; /* Nằm trên nền sao tĩnh (tạo bởi ::before/::after), nhưng dưới text/image/icon */
 }
