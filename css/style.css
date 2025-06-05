@@ -77,13 +77,13 @@ body, html {
   100% { opacity: 0.5; }
 }
 @keyframes twinkleStarMedium { 
-  0%   { opacity: 0.3; transform: scale(3); } /* Kết hợp opacity và scale */
-  50%  { opacity: 1; transform: scale(10); }
-  100% { opacity: 0.3; transform: scale(3); }
+  0%   { opacity: 0.3; transform: scale(5); } /* Kết hợp opacity và scale */
+  50%  { opacity: 1; transform: scale(20); }
+  100% { opacity: 0.3; transform: scale(5); }
 }
 @keyframes twinkleStarLarge { /* Sao lớn có thể nhấp nháy với thay đổi màu nhẹ */
   0%   { opacity: 0.7; filter: brightness(0.8) hue-rotate(0deg); }
-  50%  { opacity: 1;   filter: brightness(3) hue-rotate(20deg); }
+  50%  { opacity: 1;   filter: brightness(5) hue-rotate(20deg); }
   100% { opacity: 0.7; filter: brightness(0.8) hue-rotate(0deg); }
 }
 /* ---------------------------- */
