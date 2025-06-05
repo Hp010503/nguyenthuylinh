@@ -9,19 +9,19 @@ body, html {
 }
 
 /* --- STARFIELD CSS (NỀN TĨNH) --- */
-/* 
+/*
    Các pseudo-elements ::before và ::after của #scene-container được dùng để tạo
    các lớp sao tĩnh làm nền. Chúng sử dụng nhiều box-shadow để vẽ các chấm sao.
    Giá trị box-shadow thực tế sẽ được tải từ file starfield.ini bằng JavaScript.
 */
-#scene-container::before, 
+#scene-container::before,
 #scene-container::after {
     content: ""; /* Bắt buộc phải có để pseudo-elements được render */
     position: absolute; /* Định vị tuyệt đối so với #scene-container */
-    top: 0; 
-    left: 0; 
+    top: 0;
+    left: 0;
     right: 0;  /* Cho phép animation di chuyển trên toàn bộ phạm vi */
-    bottom: 0; 
+    bottom: 0;
     background: transparent; /* Nền trong suốt, chỉ có box-shadow là các ngôi sao */
     z-index: -2; /* Đặt sâu phía sau để không che các phần tử rơi hoặc sao động */
 }
@@ -46,23 +46,23 @@ body, html {
                twinkleStarMedium 7s ease-in-out infinite alternate; /* Nhấp nháy rõ hơn */
 }
 
-/* 
+/*
    Khối này dành cho một lớp sao tùy chọn thứ ba (ví dụ: sao lớn hơn, ít hơn).
    Nếu sử dụng, bạn cần bỏ comment trong HTML (thêm <div id="starfield-overlay"></div>)
    và cấu hình #starfield-overlay trong file starfield.ini.
 */
 /*
-#starfield-overlay { 
+#starfield-overlay {
   content: "";
   position: absolute;
   top: 0; left: 0; right:0; bottom:0;
-  width: 3px; 
+  width: 3px;
   height: 3px;
   background: transparent;
   /* box-shadow is set by JavaScript from starfield.ini */
   /* animation: animStar 100s linear infinite, twinkleStarLarge 3s ease-in-out infinite alternate; */
   /* z-index: -1; /* Đặt sau các sao động, nhưng trên ::before/::after nếu muốn tách biệt hơn */
-/* } 
+/* }
 */
 
 /* Keyframes cho animation di chuyển của các lớp sao tĩnh */
@@ -71,12 +71,12 @@ body, html {
   to   {transform: translateY(-2000px);} /* Di chuyển các lớp sao lên trên 1 khoảng lớn, tạo ảo giác không gian */
 }
 /* Keyframes cho hiệu ứng nhấp nháy của các sao tĩnh */
-@keyframes twinkleStarSmall { 
+@keyframes twinkleStarSmall {
   0%   { opacity: 0.5; }
   50%  { opacity: 1; }
   100% { opacity: 0.5; }
 }
-@keyframes twinkleStarMedium { 
+@keyframes twinkleStarMedium {
   0%   { opacity: 0.3; transform: scale(5); } /* Kết hợp opacity và scale */
   50%  { opacity: 1; transform: scale(20); }
   100% { opacity: 0.3; transform: scale(5); }
@@ -118,8 +118,6 @@ body, html {
         0 0 20px #00A3EF, 0 0 30px #00A3EF, 0 0 40px #00A3EF;
     white-space: nowrap; /* Giữ chữ trên một dòng */
     opacity: 0; /* Bắt đầu ẩn, JS sẽ làm hiện dần hoặc đặt opacity dựa trên Z-depth */
-    /* Transition ban đầu cho opacity có thể bị ghi đè bởi JS nếu Z-opacity được áp dụng ngay */
-    /* transition: opacity 0.5s ease-in-out; */
     will-change: transform, opacity; /* Gợi ý cho trình duyệt tối ưu hóa animation */
     user-select: none; /* Không cho phép người dùng chọn text */
     pointer-events: none; /* Text không cản trở sự kiện chuột/chạm lên sceneContainer */
@@ -131,11 +129,11 @@ body, html {
     position: absolute;
     opacity: 0; /* Bắt đầu ẩn */
     box-shadow: /* Hiệu ứng glow nhẹ xung quanh ảnh */
-        0 0 3px 1px #BCE1ED, 
-        0 0 5px 1px rgba(0, 163, 239, 0.5); 
-    will-change: transform, opacity; 
-    user-select: none; 
-    pointer-events: none; 
+        0 0 3px 1px #BCE1ED,
+        0 0 5px 1px rgba(0, 163, 239, 0.5);
+    will-change: transform, opacity;
+    user-select: none;
+    pointer-events: none;
     background-color: rgba(50, 50, 80, 0.3); /* Màu nền tạm thời khi ảnh đang tải */
     object-fit: cover; /* Ảnh sẽ lấp đầy vùng, giữ tỷ lệ và cắt nếu cần */
     z-index: 2; /* Lớp hiển thị cao hơn text, thấp hơn icon */
@@ -154,8 +152,8 @@ body, html {
     pointer-events: none;
     z-index: 3;  /* Lớp hiển thị cao nhất */
     text-shadow: /* Bóng đổ nhẹ cho text label của icon */
-        0 0 2px #FFFFFF, 
-        0 0 5px rgba(0,0,0,0.3); 
+        0 0 2px #FFFFFF,
+        0 0 5px rgba(0,0,0,0.3);
 }
 
 .falling-icon-container i { /* Style cho thẻ <i> chứa icon Font Awesome */
