@@ -21,18 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const FADE_DURATION = 500; // ms, thời gian cho hiệu ứng mờ dần khi các phần tử mới xuất hiện (nếu có)
 
     // Tham số cho hiệu ứng chiều sâu Z của TEXT và IMAGE
-    const ELEMENT_Z_DEPTH_RANGE = 1200; // MODIFIED: Tăng phạm vi Z để chữ/ảnh có thể ở xa/gần hơn
+    const ELEMENT_Z_DEPTH_RANGE = 2000; // MODIFIED: Tăng phạm vi Z để chữ/ảnh có thể ở xa/gần hơn
     const Z_SPEED_EFFECT_STRENGTH = 0.3;   // Hệ số ảnh hưởng của vị trí Z lên tốc độ rơi (0 = không ảnh hưởng, 1 = rất mạnh)
     const Z_OPACITY_EFFECT_STRENGTH = 0.4;  // Hệ số ảnh hưởng của vị trí Z lên độ mờ (0 = không ảnh hưởng, 1 = rất mạnh)
 
     // Tham số cho TEXT
     const MAX_ACTIVE_TEXTS = 40;     // Số lượng chữ tối đa được hiển thị cùng một lúc
-    const TEXT_CREATION_INTERVAL = 50; // ms, tần suất tạo ra chữ mới (càng nhỏ, chữ xuất hiện càng thường xuyên)
+    const TEXT_CREATION_INTERVAL = 100; // ms, tần suất tạo ra chữ mới (càng nhỏ, chữ xuất hiện càng thường xuyên)
     const INITIAL_TEXT_SPAWN_DELAY = 500; // ms, độ trễ trước khi chữ đầu tiên bắt đầu xuất hiện
 
     // Tham số cho IMAGE
-    const MAX_ACTIVE_IMAGES = 6; 
-    const IMAGE_CREATION_INTERVAL = 2200; 
+    const MAX_ACTIVE_IMAGES = 8; 
+    const IMAGE_CREATION_INTERVAL = 1500; 
     const INITIAL_IMAGE_SPAWN_DELAY = 1500;
     const imageFilenames = [ 
         'assets/images/491217300_1017294157207209_1811657879217783755_n.jpg',
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let availableImageIndicesToSpawn = []; 
     let currentSpawnIndex = 0;            
     const TARGET_APPARENT_IMAGE_WIDTH_DESKTOP = 250; 
-    const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 175;  
+    const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 150;  
     
     const MIN_ZOOM_IMAGE_BORDER_WIDTH = 2; 
     const MAX_ZOOM_IMAGE_BORDER_WIDTH = 50;
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const FIXED_SCENE_Z_DEPTH = -1000;       // MODIFIED: Đưa toàn bộ scene gần hơn một chút
     
     const MIN_VIEW_SPEED_MULTIPLIER = 1.0;
-    const MAX_VIEW_SPEED_MULTIPLIER = 1.0;
+    const MAX_VIEW_SPEED_MULTIPLIER = 3.0;
     
     let currentRotationX = 5;  
     let currentRotationY = 15; 
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ZOOM_SENSITIVITY_PINCH = 0.015;    
     
     const TARGET_APPARENT_FONT_SIZE_DESKTOP = 90; 
-    const TARGET_APPARENT_FONT_SIZE_MOBILE = 66;  
+    const TARGET_APPARENT_FONT_SIZE_MOBILE = 55;  
     const MIN_EFFECTIVE_FONT_SIZE = 1;  
     const MAX_EFFECTIVE_FONT_SIZE = 300; 
     
