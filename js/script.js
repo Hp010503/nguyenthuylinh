@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Tham số cho TEXT
     const MAX_ACTIVE_TEXTS =80;     // Số lượng chữ tối đa được hiển thị cùng một lúc
-    const TEXT_CREATION_INTERVAL = 250; // ms, tần suất tạo ra chữ mới (càng nhỏ, chữ xuất hiện càng thường xuyên)
+    const TEXT_CREATION_INTERVAL = 150; // ms, tần suất tạo ra chữ mới (càng nhỏ, chữ xuất hiện càng thường xuyên)
     const INITIAL_TEXT_SPAWN_DELAY = 500; // ms, độ trễ trước khi chữ đầu tiên bắt đầu xuất hiện
 
     // Tham số cho IMAGE
