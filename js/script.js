@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const Z_OPACITY_EFFECT_STRENGTH = 0.4;  // Hệ số ảnh hưởng của vị trí Z lên độ mờ (0 = không ảnh hưởng, 1 = rất mạnh)
 
     // Tham số cho TEXT
-    const MAX_ACTIVE_TEXTS =80;     // Số lượng chữ tối đa được hiển thị cùng một lúc
-    const TEXT_CREATION_INTERVAL = 150; // ms, tần suất tạo ra chữ mới (càng nhỏ, chữ xuất hiện càng thường xuyên)
+    const MAX_ACTIVE_TEXTS =70;     // Số lượng chữ tối đa được hiển thị cùng một lúc
+    const TEXT_CREATION_INTERVAL = 200; // ms, tần suất tạo ra chữ mới (càng nhỏ, chữ xuất hiện càng thường xuyên)
     const INITIAL_TEXT_SPAWN_DELAY = 500; // ms, độ trễ trước khi chữ đầu tiên bắt đầu xuất hiện
 
     // Tham số cho IMAGE
