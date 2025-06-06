@@ -6,9 +6,7 @@ function shuffleArray(array) {
     }
 }
 
-// Sự kiện này đảm bảo rằng tất cả HTML đã được tải và cây DOM đã sẵn sàng trước khi script chạy.
 document.addEventListener('DOMContentLoaded', () => {
-    // Lấy các phần tử DOM quan trọng từ HTML để tương tác
     const sceneContainer = document.getElementById('scene-container');
     const textArea = document.getElementById('text-area');
     const backgroundMusic = document.getElementById('background-music');
@@ -23,19 +21,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const TEXT_CREATION_INTERVAL = 200;
     const INITIAL_TEXT_SPAWN_DELAY = 500;
 
-    const MAX_ACTIVE_IMAGES = 8;
+    const MAX_ACTIVE_IMAGES = 8; // Yêu cầu: Xuất hiện tối đa 8 ảnh 1 lúc
     const IMAGE_CREATION_INTERVAL = 1500;
     const INITIAL_IMAGE_SPAWN_DELAY = 1500;
 
     let imageFilenames = [];
-    let failedImageLoadCount = 0; // Biến đếm số lần ảnh không tải được
+    let failedImageLoadCount = 0;
 
-    // ----- THAY THẾ BẰNG THÔNG TIN GITHUB CỦA BẠN -----
-    const GITHUB_OWNER = 'Hp010503';         // <- TÊN USERNAME HOẶC TỔ CHỨC GITHUB
-    const GITHUB_REPO = 'nguyenthuylinh';     // <- TÊN REPOSITORY
-    const GITHUB_IMAGE_PATH = 'assets/images'; // <- ĐƯỜNG DẪN ĐẾN THƯ MỤC CHỨA ẢNH TRONG REPO
-    const GITHUB_BRANCH = 'main';            // <- NHÁNH CHỨA ẢNH (thường là 'main' hoặc 'master')
-    // ----------------------------------------------------
+    const GITHUB_OWNER = 'Hp010503';
+    const GITHUB_REPO = 'nguyenthuylinh';
+    const GITHUB_IMAGE_PATH = 'assets/images';
+    const GITHUB_BRANCH = 'main';
+
+    let imageCreationIntervalId = null;
 
     const defaultLocalImageFilenames = [
         // 'assets/images/fallback1.jpg',
@@ -44,28 +42,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function getImagesFromGitHub() {
         if (!GITHUB_OWNER || !GITHUB_REPO || !GITHUB_IMAGE_PATH ||
-            GITHUB_OWNER === 'YOUR_GITHUB_OWNER' || // Kiểm tra giá trị placeholder
+            GITHUB_OWNER === 'YOUR_GITHUB_OWNER' ||
             GITHUB_REPO === 'YOUR_GITHUB_REPO' ||
             GITHUB_IMAGE_PATH === 'YOUR_GITHUB_IMAGE_PATH') {
-            console.warn("GitHub owner, repo, or image path is missing or still has placeholder values. Falling back to local default images if available.");
+            console.warn("GitHub owner, repo, or image path is missing. Falling back to local defaults.");
             return defaultLocalImageFilenames.length > 0 ? defaultLocalImageFilenames : [];
         }
 
-        const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_IMAGE_PATH}?ref=${GITHUB_BRANCH}`;
+        const apiUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_IMAGE_PATH}?ref=${GITHUB_BRANCH}×tamp=${new Date().getTime()}`;
+        console.log(`[GitHub Initial] Fetching image list from: ${apiUrl.substring(0, apiUrl.indexOf('?'))}`);
 
         try {
             const res = await fetch(apiUrl);
             if (!res.ok) {
-                const errorData = await res.json().catch(() => ({ message: "Unknown API error or response was not JSON." }));
-                console.error(`GitHub API error: ${res.status}`, errorData.message || "Could not parse error message.");
-                console.warn(`    Troubleshooting GitHub API: Ensure owner, repo, path, and branch are correct, and the repo is public or you have appropriate access for the API if it were private (though this script assumes public).`);
-                throw new Error(`GitHub API request failed: ${res.status}.`);
+                const errorData = await res.json().catch(() => ({ message: "Unknown API error." }));
+                console.error(`GitHub API error: ${res.status}`, errorData.message);
+                return defaultLocalImageFilenames.length > 0 ? defaultLocalImageFilenames : [];
             }
             const data = await res.json();
 
             if (!Array.isArray(data)) {
-                console.error('GitHub API did not return an array for folder contents. Response:', data);
-                 console.warn(`    Ensure GITHUB_IMAGE_PATH points to a directory, not a file.`);
+                console.error('GitHub API did not return an array. Response:', data);
                 return defaultLocalImageFilenames.length > 0 ? defaultLocalImageFilenames : [];
             }
 
@@ -73,33 +70,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 const imageFiles = data.filter(file =>
                     file.type === 'file' && /\.(png|jpe?g|gif|svg|webp)$/i.test(file.name)
                 );
-
                 const imgLinks = imageFiles.map(file =>
                     `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${file.path}`
                 );
-
-                console.log("Image URLs fetched from GitHub:", imgLinks.length, "potential images found out of", data.length, "total items in path.");
+                console.log("[GitHub Initial] Image URLs fetched:", imgLinks.length);
                 if (imgLinks.length === 0) {
-                    console.warn("No files matching image extensions found in the specified GitHub path. Check file types and path. Falling back to local default images if available.");
+                    console.warn("[GitHub Initial] No image files found. Falling back to local defaults.");
                     return defaultLocalImageFilenames.length > 0 ? defaultLocalImageFilenames : [];
                 }
                 return imgLinks;
             } else {
-                console.warn('No files found in the GitHub path specified, or the path is empty/inaccessible via API. Falling back to local default images if available.');
+                console.warn('[GitHub Initial] No files found in GitHub path. Falling back to local defaults.');
                 return defaultLocalImageFilenames.length > 0 ? defaultLocalImageFilenames : [];
             }
         } catch (error) {
-            console.error('Error during getImagesFromGitHub function execution:', error);
-            console.warn("Falling back to local default images due to an error if available.");
+            console.error('Error during getImagesFromGitHub:', error);
             return defaultLocalImageFilenames.length > 0 ? defaultLocalImageFilenames : [];
         }
     }
 
-
     let availableImageIndicesToSpawn = [];
     let currentSpawnIndex = 0;
+
+    // Yêu cầu: Random ảnh xuất hiện, không xuất hiện trùng ảnh (trong 1 lượt)
+    function getNextUniqueImageFilename() {
+        if (!imageFilenames || imageFilenames.length === 0) return null;
+
+        if (availableImageIndicesToSpawn.length === 0 || currentSpawnIndex >= availableImageIndicesToSpawn.length) {
+            // console.log("[getNextUniqueImageFilename] Shuffling for new cycle. Total images:", imageFilenames.length);
+            availableImageIndicesToSpawn = Array.from(Array(imageFilenames.length).keys());
+            shuffleArray(availableImageIndicesToSpawn);
+            currentSpawnIndex = 0;
+        }
+        
+        if (availableImageIndicesToSpawn.length === 0) return null; // Vẫn không có gì sau khi shuffle (nếu imageFilenames rỗng)
+
+
+        const actualImageIndex = availableImageIndicesToSpawn[currentSpawnIndex];
+        if (actualImageIndex === undefined || actualImageIndex < 0 || actualImageIndex >= imageFilenames.length) {
+            console.error(`[getNextUniqueImageFilename] Invalid index ${actualImageIndex} from shuffled list. Forcing re-shuffle.`);
+            availableImageIndicesToSpawn = []; // Để re-shuffle ở lần gọi tới
+            currentSpawnIndex = 0;
+            return null;
+        }
+        const filename = imageFilenames[actualImageIndex];
+        currentSpawnIndex++;
+        return filename;
+    }
+
     const TARGET_APPARENT_IMAGE_WIDTH_DESKTOP = 250;
-    const TARGET_APPARENT_IMAGE_WIDTH_MOBILE = 150;
+    const TARGET_APparent_IMAGE_WIDTH_MOBILE = 150;
     const MIN_ZOOM_IMAGE_BORDER_WIDTH = 2;
     const MAX_ZOOM_IMAGE_BORDER_WIDTH = 50;
     const MIN_ZOOM_IMAGE_BORDER_RADIUS = 5;
@@ -139,19 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let isTouching = false, lastTouchX = 0, lastTouchY = 0;
     let isPinching = false, initialPinchDistance = 0;
     let starfieldConfig = {};
-
-    function getNextUniqueImageFilename() {
-        if (!imageFilenames || imageFilenames.length === 0) return null;
-        if (availableImageIndicesToSpawn.length === 0 || currentSpawnIndex >= availableImageIndicesToSpawn.length) {
-            availableImageIndicesToSpawn = Array.from(Array(imageFilenames.length).keys());
-            shuffleArray(availableImageIndicesToSpawn);
-            currentSpawnIndex = 0;
-        }
-        if (availableImageIndicesToSpawn.length === 0) return null;
-        const filenameIndex = availableImageIndicesToSpawn[currentSpawnIndex];
-        currentSpawnIndex++;
-        return imageFilenames[filenameIndex];
-    }
 
     function calculateEdgeFadeZones() {
         edgeFadeZoneX = window.innerWidth * EDGE_FADE_ZONE_RATIO_X;
@@ -206,32 +213,49 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(e=>{console.error('textindex.ini fetch error:',e);textsContent=["Error Loading Texts"];}),
         fetchIconsConfig(),
         fetchStarfieldConfig(),
-        getImagesFromGitHub() // <-- THAY ĐỔI Ở ĐÂY
+        getImagesFromGitHub()
     ]).then((results) => {
         imageFilenames = results[3];
+        console.log("Initial imageFilenames fetched. Count:", imageFilenames.length);
+        if (imageFilenames.length > 0) {
+            console.log("Sample image URLs:", imageFilenames.slice(0, 3));
+            // Khởi tạo availableImageIndicesToSpawn lần đầu
+            availableImageIndicesToSpawn = Array.from(Array(imageFilenames.length).keys());
+            shuffleArray(availableImageIndicesToSpawn);
+            currentSpawnIndex = 0;
+        }
 
         if (imageFilenames.length > 0) {
-            // Kiểm tra xem có phải đang dùng ảnh GitHub không (nếu URL chứa raw.githubusercontent.com)
-            // hoặc có phải là ảnh fallback local không
-            const isUsingGitHubImages = imageFilenames[0] && imageFilenames[0].includes("raw.githubusercontent.com");
-            const isUsingLocalFallback = imageFilenames === defaultLocalImageFilenames && defaultLocalImageFilenames.length > 0;
-
-            if (isUsingGitHubImages) {
-                console.log("Successfully using", imageFilenames.length, "image URLs from GitHub.");
-            } else if (isUsingLocalFallback) {
-                 console.log("Using", imageFilenames.length, "local fallback images.");
-            } else if (imageFilenames.length > 0) { // Trường hợp khác (có thể là local nhưng không phải defaultLocalImageFilenames trực tiếp)
-                 console.log("Using", imageFilenames.length, "images (likely local fallbacks as GitHub fetch might have issues or returned empty).");
-            }
+             // Log thông báo thành công
         } else {
-            console.warn("No image URLs obtained from GitHub and no local fallback images are configured or available. No images will be displayed.");
+            console.warn("No image URLs obtained. No images will be displayed.");
         }
 
         applyStarfieldStyles();
         initScene();
+
+        // Yêu cầu: Nhạc nền tự mở sau khi web đã load hết dữ liệu
+        if (backgroundMusic) {
+            console.log("[Data Loaded] Attempting to play background music.");
+            let playPromise = backgroundMusic.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log("[Data Loaded] Background music started successfully after data load.");
+                    backgroundMusic.dataset.playedByInteraction = 'true'; // Đánh dấu là đã được phát
+                }).catch(error => {
+                    if (error.name === 'NotAllowedError') {
+                        console.warn("[Data Loaded] Autoplay prevented. Music will play on first user interaction.");
+                    } else {
+                        console.warn("[Data Loaded] Error attempting to play music after data load:", error);
+                    }
+                    // Sự kiện tương tác người dùng vẫn sẽ xử lý việc phát nhạc nếu ở đây thất bại
+                });
+            }
+        }
+
     }).catch(e => {
         console.error("Critical error during initial file fetching (Promise.all):", e);
-        console.warn("Attempting to initialize scene with any available fallbacks.");
+        // Fallback logic
         imageFilenames = defaultLocalImageFilenames.length > 0 ? defaultLocalImageFilenames : [];
         textsContent = textsContent.length > 0 ? textsContent : ["Error Loading Content"];
         iconsConfig = iconsConfig.length > 0 ? iconsConfig : [];
@@ -243,34 +267,45 @@ document.addEventListener('DOMContentLoaded', () => {
         calculateEdgeFadeZones();
         window.addEventListener('resize', calculateEdgeFadeZones);
 
+        // Listener phát nhạc khi tương tác (vẫn cần thiết làm fallback)
         if (backgroundMusic) {
             const playMusicOnFirstInteraction = () => {
+                // Chỉ phát nếu chưa được phát bởi logic "data loaded" hoặc tương tác trước đó
                 if (backgroundMusic.paused && backgroundMusic.dataset.playedByInteraction !== 'true') {
                     let playPromise = backgroundMusic.play();
                     if (playPromise !== undefined) {
                         playPromise.then(() => {
                             backgroundMusic.dataset.playedByInteraction = 'true';
+                            // console.log("[Interaction] Music started by user interaction.");
+                            // Gỡ bỏ listener sau khi đã phát thành công
                             document.removeEventListener('click', playMusicOnFirstInteraction, {capture: true});
                             document.removeEventListener('touchstart', playMusicOnFirstInteraction, {capture: true});
                             document.removeEventListener('keydown', playMusicOnFirstInteraction, {capture: true});
                         }).catch(error => {
-                             if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') {
-                                console.warn("[Interaction] Lỗi khi cố gắng phát nhạc:", error);
+                             if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') { 
+                                console.warn("[Interaction] Error playing music on interaction:", error);
                              }
                         });
                     }
+                } else if (!backgroundMusic.paused) { // Nếu nhạc đang chạy rồi thì cũng gỡ listener
+                     document.removeEventListener('click', playMusicOnFirstInteraction, {capture: true});
+                     document.removeEventListener('touchstart', playMusicOnFirstInteraction, {capture: true});
+                     document.removeEventListener('keydown', playMusicOnFirstInteraction, {capture: true});
                 }
             };
-            document.addEventListener('click', playMusicOnFirstInteraction, { once: true, capture: true });
-            document.addEventListener('touchstart', playMusicOnFirstInteraction, { once: true, capture: true });
-            document.addEventListener('keydown', playMusicOnFirstInteraction, { once: true, capture: true });
+            // Đăng ký listener với { once: true } để nó tự gỡ sau lần kích hoạt đầu tiên,
+            // nhưng vì có thể play() bị lỗi, chúng ta sẽ gỡ thủ công khi thành công.
+            document.addEventListener('click', playMusicOnFirstInteraction, { capture: true });
+            document.addEventListener('touchstart', playMusicOnFirstInteraction, { capture: true });
+            document.addEventListener('keydown', playMusicOnFirstInteraction, { capture: true });
+
             document.addEventListener("visibilitychange", () => {
                 if (document.visibilityState === 'visible') {
-                    if (backgroundMusic.dataset.playedByInteraction === 'true' && backgroundMusic.paused) {
+                    if (backgroundMusic.dataset.playedByInteraction === 'true' && backgroundMusic.paused) { 
                        let resumePromise = backgroundMusic.play();
                        if (resumePromise !== undefined) { resumePromise.catch(() => {}); }
                     }
-                } else {
+                } else { 
                     if (!backgroundMusic.paused) { backgroundMusic.pause(); }
                 }
             });
@@ -279,13 +314,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if(textsContent.length>0) setTimeout(()=>{if(document.querySelectorAll('.falling-text').length<MAX_ACTIVE_TEXTS)createTextElement();setInterval(createTextElement,TEXT_CREATION_INTERVAL);},INITIAL_TEXT_SPAWN_DELAY);
 
         if(imageFilenames && imageFilenames.length > 0) {
-            console.log("[Init] Starting image creation loop. Images available for display:", imageFilenames.length);
+            console.log("[Init] Starting image creation loop. Images available:", imageFilenames.length);
             setTimeout(()=>{
-                if(document.querySelectorAll('.falling-image').length < MAX_ACTIVE_IMAGES) createImageElement();
-                setInterval(createImageElement, IMAGE_CREATION_INTERVAL);
+                let initialImagesToCreate = Math.min(MAX_ACTIVE_IMAGES, imageFilenames.length);
+                 for (let i = 0; i < initialImagesToCreate; i++) {
+                    if(document.querySelectorAll('.falling-image').length < MAX_ACTIVE_IMAGES) {
+                        createImageElement();
+                    } else break;
+                 }
+                
+                if (imageCreationIntervalId) clearInterval(imageCreationIntervalId);
+                imageCreationIntervalId = setInterval(createImageElement, IMAGE_CREATION_INTERVAL);
             }, INITIAL_IMAGE_SPAWN_DELAY);
         } else {
-            console.warn("[Init] No images in imageFilenames array after setup. Image creation loop will not start.");
+            console.warn("[Init] No images. Image creation loop will not start.");
         }
 
         if(iconsConfig && iconsConfig.length > 0) setTimeout(() => { if (document.querySelectorAll('.falling-icon-container').length < MAX_ACTIVE_ICONS) createIconElement(); setInterval(createIconElement, ICON_CREATION_INTERVAL); }, INITIAL_ICON_SPAWN_DELAY);
@@ -298,56 +340,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createTextElement(){
         if(!textsContent || textsContent.length===0 || document.querySelectorAll('.falling-text').length>=MAX_ACTIVE_TEXTS)return;
-        const tC=textsContent[Math.floor(Math.random()*textsContent.length)];
+        const tC=textsContent[Math.floor(Math.random()*textsContent.length)]; 
         const tE=document.createElement('div');tE.classList.add('falling-text');tE.textContent=tC;
-        const rLZ=(Math.random()-0.5)*ELEMENT_Z_DEPTH_RANGE;
-        tE.dataset.localZ=rLZ;
+        const rLZ=(Math.random()-0.5)*ELEMENT_Z_DEPTH_RANGE; 
+        tE.dataset.localZ=rLZ; 
         tE.style.transform=`translateZ(${rLZ}px) translateX(0px) translateY(0px)`;
         tE.dataset.currentTranslateX=0;tE.dataset.currentTranslateY=0;
-        const tBFS=window.innerWidth>768?TARGET_APPARENT_FONT_SIZE_DESKTOP:TARGET_APPARENT_FONT_SIZE_MOBILE;
-        const sS=Math.max(0.01,currentSceneScale);let cFS=tBFS/sS;
-        cFS=Math.max(MIN_EFFECTIVE_FONT_SIZE,Math.min(MAX_EFFECTIVE_FONT_SIZE,cFS));
+        const tBFS=window.innerWidth>768?TARGET_APPARENT_FONT_SIZE_DESKTOP:TARGET_APPARENT_FONT_SIZE_MOBILE; 
+        const sS=Math.max(0.01,currentSceneScale);let cFS=tBFS/sS; 
+        cFS=Math.max(MIN_EFFECTIVE_FONT_SIZE,Math.min(MAX_EFFECTIVE_FONT_SIZE,cFS)); 
         tE.style.fontSize=`${cFS}px`;
-        const bSRF=Math.random()*500+375;tE.dataset.baseSpeed=bSRF;
-        const rIYP=-(Math.random()*400+20);tE.style.top=`${rIYP}%`;
-        const rIXP=(Math.random()*1000)-500;tE.style.left=`${rIXP}%`;
-        tE.style.opacity="0";
+        const bSRF=Math.random()*500+375;tE.dataset.baseSpeed=bSRF; 
+        const rIYP=-(Math.random()*400+20);tE.style.top=`${rIYP}%`; 
+        const rIXP=(Math.random()*1000)-500;tE.style.left=`${rIXP}%`; 
+        tE.style.opacity="0"; 
         textArea.appendChild(tE);
     }
 
     function createImageElement(){
-        if(!imageFilenames || imageFilenames.length===0 || document.querySelectorAll('.falling-image').length>=MAX_ACTIVE_IMAGES) return;
+        const activeImagesCount = document.querySelectorAll('.falling-image').length;
+        if(!imageFilenames || imageFilenames.length===0) return;
+        if (activeImagesCount >= MAX_ACTIVE_IMAGES) return; // Yêu cầu: Tối đa 8 ảnh
 
         const iP = getNextUniqueImageFilename();
-        if (!iP) return;
+        if (!iP) return; // Không có ảnh nào để hiển thị từ getNextUnique...
 
         const iE=document.createElement('img');
         iE.classList.add('falling-image');
-        iE.alt = "Falling image content";
+        iE.alt = "Falling image content"; 
 
         iE.onload = () => {
-            textArea.appendChild(iE);
-            console.log(`%c[IMAGE LOADED & APPENDED TO DOM] ${iP.substring(iP.lastIndexOf('/')+1)}`, 'color: green; font-weight: bold;');
+            if (!iE.parentNode) {
+                textArea.appendChild(iE); 
+                // console.log(`%c[IMAGE LOADED & APPENDED] ${iP.substring(iP.lastIndexOf('/')+1)}`, 'color: green;');
+            }
         };
         iE.onerror = () => {
             failedImageLoadCount++;
-            console.warn(`(${failedImageLoadCount}) FAILED TO LOAD IMAGE (via img.onerror): ${iP}`);
-            console.warn(`    TROUBLESHOOTING STEPS FOR THIS IMAGE URL:`);
-            console.warn(`    1. Open the URL directly in an INCOGNITO browser window:`);
-            console.warn(`       ${iP}`);
-            console.warn(`    2. If the image does NOT display:`);
-            console.warn(`       -> The GitHub raw URL might be incorrect (check owner, repo, branch, path, filename).`);
-            console.warn(`       -> The file might not exist at that path in the specified branch.`);
-            console.warn(`       -> The repository might be private and the raw link won't work for direct embedding without authentication (which this script doesn't handle). Ensure the repo is public.`);
-            if(iE.parentNode) iE.parentNode.removeChild(iE);
+            console.warn(`(${failedImageLoadCount}) FAILED TO LOAD IMAGE: ${iP}`);
+            if(iE.parentNode) iE.parentNode.removeChild(iE); 
         };
-
+        
         iE.src = iP;
 
         const rLZ=(Math.random()-0.5)*ELEMENT_Z_DEPTH_RANGE; iE.dataset.localZ=rLZ;
         iE.style.transform=`translateZ(${rLZ}px) translateX(0px) translateY(0px)`;
         iE.dataset.currentTranslateX=0; iE.dataset.currentTranslateY=0;
-        const tBIW=window.innerWidth>768?TARGET_APPARENT_IMAGE_WIDTH_DESKTOP:TARGET_APPARENT_IMAGE_WIDTH_MOBILE;
+        const tBIW=window.innerWidth>768?TARGET_APPARENT_IMAGE_WIDTH_DESKTOP:TARGET_APparent_IMAGE_WIDTH_MOBILE;
         const sS=Math.max(0.01,currentSceneScale);let cW=tBIW/sS;cW=Math.max(30,Math.min(1200,cW));
         iE.style.width=`${cW}px`; iE.style.height='auto';
         let nS=0;if(MAX_SCENE_SCALE-MIN_SCENE_SCALE>0.001){nS=(currentSceneScale-MIN_SCENE_SCALE)/(MAX_SCENE_SCALE-MIN_SCENE_SCALE);nS=Math.max(0,Math.min(1,nS));}else if(currentSceneScale>=MAX_SCENE_SCALE)nS=1;
@@ -356,20 +395,18 @@ document.addEventListener('DOMContentLoaded', () => {
         iE.style.borderWidth=`${Math.round(dBW)}px`; iE.style.borderRadius=`${Math.round(dBR)}px`;
         iE.style.borderColor="#BCE1ED"; iE.style.borderStyle="solid";
         const iBSF=(Math.random()*200+200);iE.dataset.baseSpeed=iBSF;
-
-        const rIYP_orig = -(Math.random()*400+20);
-        const rIXP_orig = (Math.random()*800)-400;
-        const rIYP_debug = -(Math.random()*50 + 5);
-        const rIXP_debug = (Math.random()*60) - 30;
-        const rIYP = rIYP_debug; // CHỌN rIYP_debug hoặc rIYP_orig
-        const rIXP = rIXP_debug; // CHỌN rIXP_debug hoặc rIXP_orig
-
-        iE.style.top=`${rIYP}%`;
-        iE.style.left=`${rIXP}%`;
-
-        const initialOpacity_orig = "0";
-        const initialOpacity_debug = "0.9";
-        iE.style.opacity = initialOpacity_debug; // CHỌN initialOpacity_debug hoặc initialOpacity_orig
+        
+        // Yêu cầu: Mỗi ảnh xuất hiện đủ xa để không đè lên nhau
+        // Sử dụng lại giá trị gốc thay vì _debug để có phạm vi rộng hơn
+        const rIYP = -(Math.random()*400+20);  // Giá trị gốc
+        const rIXP = (Math.random()*800)-400;  // Giá trị gốc
+        
+        iE.style.top=`${rIYP}%`; 
+        iE.style.left=`${rIXP}%`; 
+        
+        // Bỏ qua initialOpacity_debug, để opacity được tính trong animateFallingElement
+        iE.style.opacity = "0"; // Bắt đầu ẩn, sẽ được tính toán trong vòng lặp animation
+        delete el.dataset.initialOpacitySet; // Xóa cờ này nếu có từ lần chạy trước (cho ảnh mới)
     }
 
     function createIconElement(){
@@ -381,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
         iC.appendChild(iEl);iC.appendChild(tEl);
         const tBOS=c.size;const sS=Math.max(0.01,currentSceneScale);let cOFS=tBOS/sS;cOFS=Math.max(10,Math.min(80,cOFS));
         iC.style.fontSize=`${cOFS}px`;
-        iC.style.transform=`translateZ(0px) translateX(0px) translateY(0px)`;
+        iC.style.transform=`translateZ(0px) translateX(0px) translateY(0px)`; 
         iC.dataset.currentTranslateX=0;iC.dataset.currentTranslateY=0;
         const iBSF=(Math.random()*150+150);iC.dataset.baseSpeed=iBSF;
         const rIYP=-(Math.random()*350+20);iC.style.top=`${rIYP}%`;
@@ -390,28 +427,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createDynamicStar(){
-        const stars=document.querySelectorAll('.dynamic-star');if(stars.length>=MAX_DYNAMIC_STARS){const oS=stars[0];if(oS)oS.remove();}
+        const stars=document.querySelectorAll('.dynamic-star');if(stars.length>=MAX_DYNAMIC_STARS){const oS=stars[0];if(oS)oS.remove();} 
         const s=document.createElement('div');s.classList.add('dynamic-star');
         const sz=Math.random()*(MAX_DYNAMIC_STAR_SIZE-MIN_DYNAMIC_STAR_SIZE)+MIN_DYNAMIC_STAR_SIZE;
         s.style.width=`${sz}px`;s.style.height=`${sz}px`;
-        const rLZ=(Math.random()-0.5)*ELEMENT_Z_DEPTH_RANGE*0.3;
+        const rLZ=(Math.random()-0.5)*ELEMENT_Z_DEPTH_RANGE*0.3; 
         s.dataset.localZ=rLZ;
         const iXP=Math.random()*100;const iYP=Math.random()*100;
         s.style.left=`${iXP}%`;s.style.top=`${iYP}%`;
         const r=200+Math.floor(Math.random()*56),g=200+Math.floor(Math.random()*56),b=220+Math.floor(Math.random()*36);
         s.style.backgroundColor=`rgb(${r},${g},${b})`;
-        s.style.opacity="0";
-        s.dataset.currentOpacity=Math.random()*0.4+0.3;
-        s.dataset.opacityDirection=(Math.random()<0.5?-1:1)*DYNAMIC_STAR_TWINKLE_SPEED_FACTOR;
-        const sX=(Math.random()-0.5)*60,sY=(Math.random()-0.5)*60;
+        s.style.opacity="0"; 
+        s.dataset.currentOpacity=Math.random()*0.4+0.3; 
+        s.dataset.opacityDirection=(Math.random()<0.5?-1:1)*DYNAMIC_STAR_TWINKLE_SPEED_FACTOR; 
+        const sX=(Math.random()-0.5)*60,sY=(Math.random()-0.5)*60; 
         s.dataset.speedX=sX;s.dataset.speedY=sY;
         s.dataset.currentTranslateX=0;s.dataset.currentTranslateY=0;
-        const lifetime=Math.random()*(DYNAMIC_STAR_MAX_LIFETIME-2000)+2000;
+        const lifetime=Math.random()*(DYNAMIC_STAR_MAX_LIFETIME-2000)+2000; 
         s.dataset.creationTime=performance.now(); s.dataset.lifetime=lifetime;
         textArea.appendChild(s);
     }
-
-    let lastFrameTime_anim = 0;
+    
+    let lastFrameTime_anim = 0; 
 
     function animateFallingElement(selector, elementType, deltaTime, viewportW, viewportH, screenDownLocalX, screenDownLocalY, currentTime_anim) {
         const elementsOnScreen = textArea.querySelectorAll(selector);
@@ -433,12 +470,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         const normZ = localZ / halfZRange;
                         elementSpeed = baseSpeed * (1 + normZ * Z_SPEED_EFFECT_STRENGTH);
                         elementSpeed = Math.max(baseSpeed * 0.1, elementSpeed);
-                        const initialStyleOpacity = parseFloat(el.style.opacity);
-                        const calculatedOpacityZ = 1 - (Math.max(0, -normZ) * Z_OPACITY_EFFECT_STRENGTH);
-                        opacityFromZ = (initialStyleOpacity > 0 && initialStyleOpacity < 1 && el.dataset.initialOpacitySet !== "true") ? initialStyleOpacity : calculatedOpacityZ;
-                        if (initialStyleOpacity > 0 && initialStyleOpacity < 1) el.dataset.initialOpacitySet = "true";
-
-                        opacityFromZ = Math.max(0.1, opacityFromZ);
+                        
+                        // Opacity không còn dựa vào initialStyleOpacity hay initialOpacitySet nữa
+                        // vì chúng ta muốn nó được tính toán hoàn toàn dựa trên Z và vị trí cạnh.
+                        opacityFromZ = 1 - (Math.max(0, -normZ) * Z_OPACITY_EFFECT_STRENGTH);
+                        opacityFromZ = Math.max(0.1, opacityFromZ); // Đảm bảo không quá trong suốt
                     }
                 }
                 finalSpeedX = screenDownLocalX * elementSpeed;
@@ -450,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 finalSpeedX = screenDownLocalX * baseSpeed;
                 finalSpeedY = screenDownLocalY * baseSpeed;
                 elOriginalSize = el.offsetHeight || (parseFloat(el.style.fontSize) || 20);
-                if (el.style.transition.includes('opacity')) {
+                if (el.style.transition && el.style.transition.includes('opacity')) {
                     const currentCssOpacity = parseFloat(window.getComputedStyle(el).opacity);
                     if (currentCssOpacity >= 0.99) {
                        el.style.transition = '';
@@ -507,29 +543,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 opacityFromEdges = Math.max(0, opacityFromEdges);
 
-                if (elementType === 'icon' && el.style.transition.includes('opacity')) {
-                    // Icon is in transition, CSS handles its opacity
+                if (elementType === 'icon' && el.style.transition && el.style.transition.includes('opacity')) {
+                    // Icon đang transition, CSS xử lý opacity
                 } else {
                     const finalCalculatedOpacity = Math.min(opacityFromEdges, opacityFromZ);
-                    if (elementType === 'image') {
-                        el.style.opacity = finalCalculatedOpacity.toFixed(2);
-                    } else {
-                         el.style.opacity = finalCalculatedOpacity.toFixed(2);
-                    }
+                    el.style.opacity = finalCalculatedOpacity.toFixed(2);
                 }
-
-                const removeThreshold_orig = elOriginalSize * (elementType === 'star' ? 1.2 : 1.8);
+                
+                const removeThreshold_orig = elOriginalSize * (elementType === 'star' ? 1.2 : 1.8); 
                 const removeThreshold_debug = elOriginalSize * (elementType === 'star' ? 2.5 : 3.5);
-                const removeThreshold = removeThreshold_debug; // CHỌN removeThreshold_debug hoặc removeThreshold_orig
+                const removeThreshold = removeThreshold_debug; // Bạn có thể chọn _orig nếu muốn xóa sớm hơn
 
                 const currentElementOpacity = parseFloat(el.style.opacity || 0);
                 const isOutOfBound = rect.bottom < -removeThreshold || rect.top > viewportH + removeThreshold ||
                                      rect.right < -removeThreshold || rect.left > viewportW + removeThreshold;
-
-                const shouldRemove_orig = (currentElementOpacity <=0.01 || isOutOfBound);
-                const shouldRemove_debug = isOutOfBound; // Chỉ xóa nếu ra ngoài, bỏ qua opacity khi debug
-                const shouldRemove = shouldRemove_debug; // CHỌN shouldRemove_debug hoặc shouldRemove_orig
-
+                
+                // Giữ lại logic xóa của bạn (chỉ dựa vào isOutOfBound)
+                const shouldRemove = isOutOfBound; 
+                
                 if (shouldRemove) {
                     if (el.parentNode) el.remove();
                 }
@@ -541,10 +572,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!lastFrameTime_anim) { lastFrameTime_anim = currentTime; requestAnimationFrame(animationLoop_entryPoint); return; }
         const deltaTime = (currentTime - lastFrameTime_anim) / 1000;
         lastFrameTime_anim = currentTime;
-
+        
         const viewportW = window.innerWidth;
         const viewportH = window.innerHeight;
-        const rotX_rad = currentRotationX * Math.PI / 180;
+        const rotX_rad = currentRotationX * Math.PI / 180; 
         const rotY_rad = currentRotationY * Math.PI / 180;
         const screenDownLocalX = -Math.sin(rotY_rad) * Math.sin(rotX_rad);
         const screenDownLocalY = Math.cos(rotX_rad);
@@ -556,15 +587,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         requestAnimationFrame(animationLoop_entryPoint);
     }
-
-    function updateTextAreaTransform() {
-        const translateZValue = FIXED_SCENE_Z_DEPTH;
-        currentSceneScale = Math.max(MIN_SCENE_SCALE, Math.min(MAX_SCENE_SCALE, currentSceneScale));
-        currentRotationX = Math.max(-maxAngle, Math.min(maxAngle, currentRotationX));
-        currentRotationY = Math.max(-maxAngle, Math.min(35, currentRotationY));
-        textArea.style.transform = `translateZ(${translateZValue}px) scale(${currentSceneScale}) rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`;
+    
+    function updateTextAreaTransform() { 
+        const translateZValue = FIXED_SCENE_Z_DEPTH; 
+        currentSceneScale = Math.max(MIN_SCENE_SCALE, Math.min(MAX_SCENE_SCALE, currentSceneScale)); 
+        currentRotationX = Math.max(-maxAngle, Math.min(maxAngle, currentRotationX)); 
+        currentRotationY = Math.max(-maxAngle, Math.min(35, currentRotationY)); 
+        textArea.style.transform = `translateZ(${translateZValue}px) scale(${currentSceneScale}) rotateX(${currentRotationX}deg) rotateY(${currentRotationY}deg)`; 
     }
-
+    
     // Event listeners
     sceneContainer.addEventListener('mousedown', (e) => { if (e.button !== 0) return; isMouseDown = true; isPinching = false; isTouching = false; lastMouseX = e.clientX; lastMouseY = e.clientY; sceneContainer.style.cursor = 'grabbing'; });
     document.addEventListener('mousemove', (e) => { if (!isMouseDown) return; const dX = e.clientX - lastMouseX; const dY = e.clientY - lastMouseY; currentRotationY += dX * rotationSensitivityMouse; currentRotationX -= dY * rotationSensitivityMouse; updateTextAreaTransform(); lastMouseX = e.clientX; lastMouseY = e.clientY; });
